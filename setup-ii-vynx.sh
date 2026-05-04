@@ -98,13 +98,51 @@ log_verbose() {
     fi
 }
 
+setup_hyprland_rules() {
+    local REPO_HYPR_DIR="$SCRIPT_DIR/dots/.config/hypr"
+    local DEST_HYPR_DIR="$HOME/.config/hypr"
+
+    echo -e "${NC}• Copying Hyprland config files (rules, general, etc.)...${NC}"
+
+    if [ ! -d "$REPO_HYPR_DIR" ]; then
+        echo -e "${YELLOW}⚠ Hyprland config directory not found in repo ($REPO_HYPR_DIR), skipping.${NC}"
+        return 0
+    fi
+
+    # Files that contain user-specific settings and must NOT be overwritten
+    local SKIP_FILES=("colors.conf" "general.conf")
+
+    # Copy non-custom hyprland sub-configs (hyprland/*.conf), skip custom/ and user files
+    local REPO_CONF_DIR="$REPO_HYPR_DIR/hyprland"
+    local DEST_CONF_DIR="$DEST_HYPR_DIR/hyprland"
+    if [ -d "$REPO_CONF_DIR" ]; then
+        mkdir -p "$DEST_CONF_DIR"
+        for f in "$REPO_CONF_DIR"/*.conf; do
+            [ -f "$f" ] || continue
+            local fname
+            fname="$(basename "$f")"
+            # Skip user-specific files
+            local skip=false
+            for skip_file in "${SKIP_FILES[@]}"; do
+                if [ "$fname" = "$skip_file" ]; then
+                    skip=true
+                    log_verbose "Skipping user file: $fname"
+                    break
+                fi
+            done
+            $skip && continue
+            if [ -f "$DEST_CONF_DIR/$fname" ]; then
+                cp "$DEST_CONF_DIR/$fname" "$DEST_CONF_DIR/${fname}.bak"
+                log_verbose "Backed up $DEST_CONF_DIR/$fname"
+            fi
+            cp "$f" "$DEST_CONF_DIR/$fname"
+            log_verbose "Copied $fname → $DEST_CONF_DIR/$fname"
+        done
+        echo -e "${GREEN}✓ Hyprland rule configs updated${NC}"
+    fi
+}
+
 setup_hyprland_source() {
-    local II_VYNX_DIR="$HOME/.local/share/ii-vynx"
-    local II_VYNX_CONF="$II_VYNX_DIR/hyprland.conf"
-    local MAIN_HYPR_CONF="$HOME/.config/hypr/hyprland.conf"
-    local REPO_HYPR_CONF="$SCRIPT_DIR/dots/.local/share/ii-vynx/hyprland.conf"
-    local HYPRMERGE="$SCRIPT_DIR/sdata/cli/lib/hyprmerge.sh"
- 
     local II_VYNX_DIR="$HOME/.local/share/ii-vynx"
     local II_VYNX_CONF="$II_VYNX_DIR/hyprland.conf"
     local MAIN_HYPR_CONF="$HOME/.config/hypr/hyprland.conf"
@@ -406,6 +444,7 @@ cp -r "$SOURCE_DIR/." "$TARGET_DIR/"
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Successfully copied: $TARGET_DIR${NC}"
     sleep 1.0
+    setup_hyprland_rules
     setup_hyprland_source
 else
     echo -e "${RED}✗ An error occurred while copying!${NC}"
