@@ -5,11 +5,13 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.modules.common
+import qs.modules.common.functions
 
 Singleton {
     id: root
 
     property ListModel commandsModel: ListModel {}
+    property bool importing: false
 
     readonly property string filePath: Directories.commandsPath
 
@@ -70,6 +72,53 @@ Singleton {
             }
         }
         return Array.from(set).sort();
+    }
+
+    signal importFinished(bool success, string errorMsg)
+
+    function importCommands(path) {
+        const plainPath = FileUtils.trimFileProtocol(path);
+        importFileView.path = Qt.resolvedUrl("file://" + plainPath);
+        importFileView.reload();
+    }
+
+    FileView {
+        id: importFileView
+        path: ""
+        onLoaded: {
+            const text = importFileView.text();
+            if (!text) {
+                importFinished(false, "File is empty.");
+                return;
+            }
+            try {
+                const data = JSON.parse(text);
+                if (!Array.isArray(data)) {
+                    importFinished(false, "Invalid format: Expected an array of commands.");
+                    return;
+                }
+                root.importing = true;
+                data.forEach(item => {
+                    const id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+                    const tagList = (item.tags || []).map(t => ({ modelData: t }));
+                    commandsModel.append({
+                        id: id,
+                        command: item.command || "",
+                        description: item.description || "",
+                        tags: tagList
+                    });
+                });
+                root.importing = false;
+                save();
+                importFinished(true, "");
+            } catch (e) {
+                root.importing = false;
+                importFinished(false, "Failed to parse JSON: " + e.message);
+            }
+        }
+        onLoadFailed: (error) => {
+            importFinished(false, "Could not read file (error " + error + ").");
+        }
     }
 
     FileView {

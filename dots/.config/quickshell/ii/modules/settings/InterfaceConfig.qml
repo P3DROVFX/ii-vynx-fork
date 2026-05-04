@@ -143,6 +143,15 @@ ContentPage {
                 }
             }
         }
+        ConfigSwitch {
+            buttonIcon: "table_rows_narrow"
+            enabled: Config.options.cheatsheet.enableCommands
+            text: Translation.tr("Commands: sidebar tag layout")
+            checked: Config.options.cheatsheet.commandsTagsSidebar
+            onCheckedChanged: {
+                Config.options.cheatsheet.commandsTagsSidebar = checked;
+            }
+        }
     }
     
     ContentSection {

@@ -460,6 +460,7 @@ Singleton {
                 property bool enableTimetable: true
                 property bool enablePeriodicTable: true
                 property bool enableCommands: true
+                property bool commandsTagsSidebar: false
                 property JsonObject fontSize: JsonObject {
                     property int key: Appearance.font.pixelSize.smaller
                     property int comment: Appearance.font.pixelSize.smaller
