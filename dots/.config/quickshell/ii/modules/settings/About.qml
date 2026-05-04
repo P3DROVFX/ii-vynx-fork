@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Io
 import Quickshell.Widgets
 import qs.services
 import qs.modules.common
@@ -210,6 +211,82 @@ ContentPage {
             
 
             
+        }
+    }
+}
+
+    ContentSection {
+        id: sourceSwitchSection
+        icon: "swap_horiz"
+        title: Translation.tr("Quickshell Source")
+
+        property string stateFile: StandardPaths.writableLocation(StandardPaths.HomeLocation) + "/.local/state/quickshell/user/generated/qs-source.txt"
+        property string installScript: StandardPaths.writableLocation(StandardPaths.HomeLocation) + "/.local/share/ii-vynx/setup-ii-vynx.sh"
+        property string activeSource: "fork"
+
+        Component.onCompleted: { sourceReadProc.running = true }
+
+        Process {
+            id: sourceReadProc
+            command: ["bash", "-c", "cat " + sourceSwitchSection.stateFile + " 2>/dev/null || echo fork"]
+            stdout: SplitParser {
+                onRead: data => { sourceSwitchSection.activeSource = data.trim() }
+            }
+        }
+
+        Process {
+            id: switchProc
+            property string nextSource: ""
+            onExited: code => { if (code === 0) sourceSwitchSection.activeSource = switchProc.nextSource }
+        }
+
+        RowLayout {
+            Layout.alignment: Qt.AlignHCenter
+            Layout.topMargin: 10
+            Layout.bottomMargin: 10
+            ColumnLayout {
+                Layout.alignment: Qt.AlignVCenter
+                StyledText {
+                    text: Translation.tr("Switch between your fork and the official ii-vynx quickshell.")
+                    font.pixelSize: Appearance.font.pixelSize.normal
+                    wrapMode: Text.WordWrap
+                }
+                StyledText {
+                    text: Translation.tr("Uses local repos only (no network). Restarts Quickshell automatically.")
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    opacity: 0.6
+                    wrapMode: Text.WordWrap
+                }
+            }
+        }
+
+        Flow {
+            Layout.fillWidth: true
+            spacing: 5
+            RippleButtonWithIcon {
+                materialIcon: "fork_right"
+                mainText: Translation.tr("My Fork")
+                property bool isActive: sourceSwitchSection.activeSource !== "ii-vynx"
+                buttonColor: isActive ? Appearance.colors.colPrimary : undefined
+                labelColor: isActive ? Appearance.colors.colOnPrimary : undefined
+                onClicked: {
+                    switchProc.nextSource = "fork"
+                    switchProc.command = ["bash", "-c", sourceSwitchSection.installScript + " --force-install --no-pull --no-confirm && echo fork > " + sourceSwitchSection.stateFile]
+                    switchProc.running = true
+                }
+            }
+            RippleButtonWithIcon {
+                materialIcon: "deployed_code"
+                mainText: Translation.tr("ii-vynx Official")
+                property bool isActive: sourceSwitchSection.activeSource === "ii-vynx"
+                buttonColor: isActive ? Appearance.colors.colPrimary : undefined
+                labelColor: isActive ? Appearance.colors.colOnPrimary : undefined
+                onClicked: {
+                    switchProc.nextSource = "ii-vynx"
+                    switchProc.command = ["bash", "-c", sourceSwitchSection.installScript + " --force-install --no-pull --no-confirm --ii-vynx && echo ii-vynx > " + sourceSwitchSection.stateFile]
+                    switchProc.running = true
+                }
+            }
         }
     }
 }
