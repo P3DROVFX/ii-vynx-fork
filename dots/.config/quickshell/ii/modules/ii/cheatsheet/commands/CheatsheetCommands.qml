@@ -480,7 +480,16 @@ Item {
         }
 
         PagePlaceholder {
-            anchors.centerIn: parent
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.horizontalCenterOffset: Config.options.cheatsheet.commandsTagsSidebar ? (tagSidebar.width / 2) : 0
+            anchors.verticalCenter: parent.verticalCenter
+
+            Behavior on anchors.horizontalCenterOffset {
+                NumberAnimation {
+                    duration: 250
+                    easing.type: Easing.OutCubic
+                }
+            }
             shown: root.filteredIndices.length === 0
             icon: (root.searchText !== "" || root.activeTag !== "") ? "search_off" : "terminal"
             description: (root.searchText !== "" || root.activeTag !== "") ? qsTr("No results") : qsTr("No commands yet.\nClick \"Add command\" to get started.")
@@ -510,16 +519,16 @@ Item {
                 clip: true
                 font.pixelSize: Appearance.font.pixelSize.small
                 onTextChanged: root.searchText = text
-                colBackground: Qt.alpha(Appearance.colors.colOnTertiaryContainer, 0.05)
-                color: Appearance.colors.colOnTertiaryContainer
-                placeholderTextColor: Qt.alpha(Appearance.colors.colOnTertiaryContainer, 0.6)
+                colBackground: Qt.alpha(Appearance.colors.colOnSecondaryContainer, 0.05)
+                color: Appearance.colors.colOnSecondaryContainer
+                placeholderTextColor: Qt.alpha(Appearance.colors.colOnSecondaryContainer, 0.6)
             }
 
             IconToolbarButton {
                 implicitWidth: height
                 onClicked: root.searchText = filterField.text = ''
                 text: "close"
-                colText: Appearance.colors.colOnTertiaryContainer
+                colText: Appearance.colors.colOnSecondaryContainer
                 StyledToolTip {
                     text: qsTr("Clear filter")
                 }

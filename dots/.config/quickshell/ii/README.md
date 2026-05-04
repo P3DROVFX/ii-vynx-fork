@@ -173,11 +173,6 @@ ColorPickerPopupContent 1.0 ColorPickerPopupContent.qml
       <p>Integrated device management within the shell. Easily connect, disconnect, and monitor battery levels of peripherals.</p>
       <img src="https://github.com/user-attachments/assets/9473e473-b5f5-4cd5-b634-d0f7c98334a6" alt="Bluetooth" />
     </td>
-    <td width="50%" valign="top">
-      <h3>⚙️ Native System Settings</h3>
-      <p>Centralized control module to manage all shell options, UI tweaks, and system preferences without editing files manually.</p>
-      <img src="https://github.com/user-attachments/assets/0368bf0f-bc5b-482b-ae06-1d291c47e3e2" alt="Settings" />
-    </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
@@ -188,19 +183,75 @@ ColorPickerPopupContent 1.0 ColorPickerPopupContent.qml
     <td width="50%" valign="top">
       <h3>📜 Cheatsheet Commands</h3>
       <p>Manage your personal command library with dynamic tags, search, and JSON import/export support.</p>
-      <img src="REPLACE_WITH_COMMANDS_PREVIEW_IMAGE" alt="Commands" />
-      <br><br>
+      <img alt="image" src="https://github.com/user-attachments/assets/6c316fae-f49c-46ac-9aeb-d7f228ca005e" />       
       <details>
-        <summary><b>🛠️ Implementation Guide</b></summary>
-        <p>Follow these steps to integrate the commands module:</p>
-        <ol>
-          <li>Add <code>enableCommands</code> and <code>commandsTagsSidebar</code> to <code>Config.qml</code>.</li>
-          <li>Register <code>CommandsService.qml</code> as a singleton.</li>
-          <li>Add toggles to <code>InterfaceConfig.qml</code> for user control.</li>
-          <li>Check <a href="modules/ii/cheatsheet/commands/commands.md">commands.md</a> for the full documentation.</li>
-        </ol>
-      </details>
-    </td>
+        <summary><b>🛠️ Full Implementation Guide</b></summary>
+        <br>
+        
+        This guide provides step-by-step instructions for implementing the **Commands Cheatsheet** module into your Quickshell configuration.
+
+        ### 1. File Structure
+        Ensure these files are in their directories:
+        - `modules/ii/cheatsheet/commands/CheatsheetCommands.qml`
+        - `modules/ii/cheatsheet/commands/CommandCard.qml`
+        - `modules/ii/cheatsheet/commands/CommandForm.qml`
+        - `services/CommandsService.qml`
+
+        ### 2. Configuration Setup
+        #### Update `Config.qml`
+        Add these to your `cheatsheet` object:
+        ```qml
+        property bool enableCommands: true
+        property bool commandsTagsSidebar: false
+        ```
+
+        #### Update `InterfaceConfig.qml`
+        Add the UI toggles:
+        ```qml
+        ConfigSwitch {
+            buttonIcon: "terminal"
+            text: Translation.tr("Enable Commands")
+            checked: Config.options.cheatsheet.enableCommands
+            onCheckedChanged: { Config.options.cheatsheet.enableCommands = checked; }
+        }
+
+        ConfigSwitch {
+            buttonIcon: "table_rows_narrow"
+            enabled: Config.options.cheatsheet.enableCommands
+            text: Translation.tr("Commands: sidebar tag layout")
+            checked: Config.options.cheatsheet.commandsTagsSidebar
+            onCheckedChanged: { Config.options.cheatsheet.commandsTagsSidebar = checked; }
+        }
+        ```
+
+        ### 3. Module Integration
+        #### Register the Service
+        Ensure `CommandsService.qml` is registered as a singleton.
+
+        #### Update `Cheatsheet.qml`
+        Add the tab conditionally:
+        ```qml
+        if (Config.options.cheatsheet.enableCommands) {
+            tabs.push({
+                name: "Commands",
+                icon: "terminal",
+                component: Qt.resolvedUrl("commands/CheatsheetCommands.qml")
+            });
+        }
+        ```
+
+        ### 4. Features & Usage
+        - **Dual Layout**: Toggle between a horizontal tag bar or a vertical sidebar with command counters.
+        - **JSON Import**: Use this format:
+        ```json
+        [
+          {
+            "command": "git pull",
+            "description": "Update local repo",
+            "tags": ["git"]
+          }
+        ]
+        ```
   </tr>
 </table>
 
