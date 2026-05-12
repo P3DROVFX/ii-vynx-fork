@@ -32,7 +32,7 @@ Item {
     }
 
     property var compMap: ({ // [horizontal, vertical, expressiveHorizontal, expressiveVertical]
-            "workspaces": [workspaceComp, workspaceComp, workspaceCompExpressive, workspaceCompExpressive],
+            "workspaces": [workspaceComp, workspaceComp, workspaceCompExpressive, workspaceCompExpressive, workspaceCompMinimal, workspaceCompMinimal],
             "music_player": [musicPlayerComp, musicPlayerCompVert, musicPlayerCompExpressive, musicPlayerCompExpressive],
             "system_monitor": [systemMonitorComp, systemMonitorCompVert, systemMonitorCompExpressive, systemMonitorCompExpressive],
             "clock": [clockComp, clockCompVert, clockCompExpressive, clockCompExpressive],
@@ -52,6 +52,12 @@ Item {
             "sports": [sportsComp, sportsComp, sportsCompExpressive, sportsCompExpressive],
             "power": [powerComp, powerComp, powerCompExpressive, powerCompExpressive]
         })
+
+    readonly property bool isMinimal: {
+        if (modelData.id === "workspaces" && Config.options.bar.styles.workspaces === "minimal")
+            return true;
+        return false;
+    }
 
     readonly property bool isExpressive: {
         if (modelData.id === "clock" && Config.options.bar.styles.clock === "expressive")
@@ -170,7 +176,11 @@ Item {
                     return null;
                 let isVert = vertical ? 1 : 0;
                 let isExpressive = rootItem.isExpressive;
+                let isMinimal = rootItem.isMinimal;
 
+                if (isMinimal && comps.length > 4 && comps[isVert + 4]) {
+                    return comps[isVert + 4];
+                }
                 if (isExpressive && comps.length > 2 && comps[isVert + 2]) {
                     return comps[isVert + 2];
                 }
@@ -353,6 +363,13 @@ Item {
             vertical: rootItem.vertical
         }
     }
+    Component {
+        id: workspaceCompMinimal
+        MinimalWorkspaces {
+            vertical: rootItem.vertical
+        }
+    }
+
     Component {
         id: workspaceCompExpressive
         ExpressiveWorkspaces {

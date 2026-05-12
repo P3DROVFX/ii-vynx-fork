@@ -169,7 +169,7 @@ MouseArea {
 
     Loader {
         id: popupLoader
-        source: "ExpressiveBluetoothDevicesPopup.qml"
+        source: Config.options.bar.bluetoothDevicesLayout === "expressive" ? "ExpressiveBluetoothDevicesPopup.qml" : "BluetoothDevicesPopup.qml"
         onLoaded: {
             item.hoverTarget = root;
         }

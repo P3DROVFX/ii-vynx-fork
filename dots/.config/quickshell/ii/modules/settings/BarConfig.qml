@@ -376,6 +376,11 @@ ContentPage {
                             value: "default"
                         },
                         {
+                            displayName: Translation.tr("Minimal"),
+                            icon: "navigation",
+                            value: "minimal"
+                        },
+                        {
                             displayName: Translation.tr("Expressive"),
                             icon: "fluid_med",
                             value: "expressive"
