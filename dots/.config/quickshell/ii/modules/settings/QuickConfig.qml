@@ -536,8 +536,9 @@ ContentPage {
 
         Behavior on opacity {
             NumberAnimation {
-                duration: Appearance.animation.elementMoveFast.numberAnimation.duration
-                easing.type: Appearance.animation.elementMoveFast.numberAnimation.easing.type
+                duration: Appearance.animation.elementMoveFast.duration
+                easing.type: Appearance.animation.elementMoveFast.type
+                easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
             }
         }
 
