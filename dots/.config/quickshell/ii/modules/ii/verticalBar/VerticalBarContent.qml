@@ -64,6 +64,27 @@ Item { // Bar content region
 
     readonly property bool isDynamicIsland: Config.options.bar.cornerStyle === 3
 
+    Rectangle {
+        z: -11
+        anchors.fill: parent
+        visible: Config.options.bar.barBackgroundStyle === 0
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop {
+                position: Config.options.bar.bottom ? 1.0 : 0.0
+                color: Qt.rgba(0, 0, 0, 0.6)
+            }
+            GradientStop {
+                position: Config.options.bar.bottom ? 0.6 : 0.4
+                color: Qt.rgba(0, 0, 0, 0.2)
+            }
+            GradientStop {
+                position: Config.options.bar.bottom ? 0.0 : 1.0
+                color: "transparent"
+            }
+        }
+    }
+
     // Background
     Rectangle {
         id: barBackground

@@ -73,6 +73,43 @@ Item { // Bar content region
     }
     property var activeTheme: barThemes.getTheme(Config.options.bar.expressiveColorTheme)
 
+    Rectangle {
+        id: shadowSource
+        z: -12
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: !Config.options.bar.vertical && !Config.options.bar.bottom ? parent.top : undefined
+            bottom: !Config.options.bar.vertical && Config.options.bar.bottom ? parent.bottom : undefined
+            leftMargin: (Config.options.bar.vertical && !Config.options.bar.bottom) ? 0 : undefined
+            rightMargin: (Config.options.bar.vertical && Config.options.bar.bottom) ? 0 : undefined
+        }
+        width: Config.options.bar.vertical ? 1 : parent.width
+        height: Config.options.bar.vertical ? parent.height : 1
+        visible: Config.options.bar.barBackgroundStyle === 0
+        color: "transparent"
+    }
+
+    Rectangle {
+        z: -11
+        anchors.fill: parent
+        visible: Config.options.bar.barBackgroundStyle === 0
+        gradient: Gradient {
+            GradientStop {
+                position: Config.options.bar.bottom ? 1.0 : 0.0
+                color: Qt.rgba(0, 0, 0, 0.6)
+            }
+            GradientStop {
+                position: Config.options.bar.bottom ? 0.6 : 0.4
+                color: Qt.rgba(0, 0, 0, 0.2)
+            }
+            GradientStop {
+                position: Config.options.bar.bottom ? 0.0 : 1.0
+                color: "transparent"
+            }
+        }
+    }
+
     // Background
     Rectangle {
         id: barBackground
