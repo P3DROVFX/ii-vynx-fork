@@ -6,6 +6,7 @@ import qs.modules.common.models
 import qs.modules.common.widgets
 import qs.modules.common.functions
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Widgets
@@ -155,10 +156,28 @@ RippleButton {
 
         Component {
             id: iconImageComponent
-            IconImage {
-                source: Quickshell.iconPath(root.iconName, "image-missing")
+            Item {
                 width: 35
                 height: 35
+
+                MaterialShape {
+                    id: iconMask
+                    width: Math.max(1, parent.width)
+                    height: Math.max(1, parent.height)
+                    shapeString: Config.options.appearance.icons.shapeMask
+                    visible: false
+                }
+
+                layer.enabled: Config.options.appearance.icons.enableShapeMask
+                layer.effect: MultiEffect {
+                    maskEnabled: true
+                    maskSource: iconMask
+                }
+
+                IconImage {
+                    source: Quickshell.iconPath(root.iconName, "image-missing")
+                    anchors.fill: parent
+                }
             }
         }
 

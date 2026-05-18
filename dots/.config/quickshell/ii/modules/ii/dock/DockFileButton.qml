@@ -5,6 +5,7 @@ import qs
 import qs.services
 import Qt5Compat.GraphicalEffects
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Widgets
@@ -25,20 +26,20 @@ DockButton {
     readonly property bool isVertical: dockContent?.isVertical ?? false
 
     readonly property string fileName: {
-        const parts = filePath.split("/").filter(s => s.length > 0);
-        return parts[parts.length - 1] ?? filePath;
+        const parts = filePath.split("/").filter(s => s.length > 0)
+        return parts[parts.length - 1] ?? filePath
     }
 
     readonly property string containingDir: {
-        const idx = filePath.lastIndexOf("/");
-        return idx > 0 ? filePath.substring(0, idx) : filePath;
+        const idx = filePath.lastIndexOf("/")
+        return idx > 0 ? filePath.substring(0, idx) : filePath
     }
 
     readonly property string mimeIcon: dockContent?.mimeIconFromPath(filePath) ?? "insert_drive_file"
 
     readonly property bool isDirectory: {
-        const lastPart = filePath.toString().split("/").filter(s => s).pop() ?? "";
-        return !lastPart.includes(".") || filePath.endsWith("/");
+        const lastPart = filePath.toString().split("/").filter(s => s).pop() ?? ""
+        return !lastPart.includes(".") || filePath.endsWith("/")
     }
 
     readonly property bool isImage: /\.(png|jpe?g|webp|gif|svg|bmp|ico)$/i.test(filePath)
@@ -49,30 +50,29 @@ DockButton {
         id: mimeQueryProcess
         command: ["xdg-mime", "query", "filetype", root.filePath]
         stdout: SplitParser {
-            onRead: line => {
-                const mime = line.trim();
+            onRead: (line) => {
+                const mime = line.trim()
                 // Convert MIME type (e.g. "text/plain") to XDG icon name ("text-plain")
-                if (mime !== "")
-                    root.cachedXdgIcon = mime.replace("/", "-");
+                if (mime !== "") root.cachedXdgIcon = mime.replace("/", "-")
             }
         }
     }
 
     Component.onCompleted: {
         if (!root.isImage && root.filePath !== "" && !root.isDirectory)
-            mimeQueryProcess.running = true;
+            mimeQueryProcess.running = true
     }
 
     onFilePathChanged: {
         if (!root.isImage && root.filePath !== "" && !root.isDirectory) {
-            root.cachedXdgIcon = "";
-            mimeQueryProcess.running = true;
+            root.cachedXdgIcon = ""
+            mimeQueryProcess.running = true
         }
     }
 
     readonly property string resolvedXdgIcon: {
-        TaskbarApps.iconThemeRevision;   // reactive dependency — retriggers on theme change
-        const dirs = TaskbarApps.xdgUserDirs;
+        TaskbarApps.iconThemeRevision   // reactive dependency — retriggers on theme change
+        const dirs = TaskbarApps.xdgUserDirs
 
         if (root.isDirectory) {
             const map = {
@@ -83,42 +83,39 @@ DockButton {
                 [dirs.videos]: "folder-videos",
                 [dirs.desktop]: "folder-desktop",
                 [dirs.publicshare]: "folder-publicshare",
-                [dirs.templates]: "folder-templates"
-            };
-            return Quickshell.iconPath(map[filePath.toString()] ?? "folder", "folder");
+                [dirs.templates]: "folder-templates",
+            }
+            return Quickshell.iconPath(map[filePath.toString()] ?? "folder", "folder")
         }
 
-        if (root.isImage)
-            return "";
+        if (root.isImage) return ""
 
         if (root.cachedXdgIcon !== "")
-            return Quickshell.iconPath(root.cachedXdgIcon, "text-x-generic");
+            return Quickshell.iconPath(root.cachedXdgIcon, "text-x-generic")
 
-        return Quickshell.iconPath("text-x-generic", "application-x-generic");
+        return Quickshell.iconPath("text-x-generic", "application-x-generic")
     }
 
-    readonly property bool isDragging: dockContent?.fileDragActive === true && dockContent?.fileDraggedIndex === delegateIndex
+    readonly property bool isDragging: dockContent?.fileDragActive === true
+                                    && dockContent?.fileDraggedIndex === delegateIndex
 
     // Computes how much this delegate should shift to make room for the dragged item
     readonly property real shiftOffset: {
-        if (!dockContent?.fileDragActive || dockContent.fileDraggedIndex < 0 || delegateIndex === dockContent.fileDraggedIndex)
-            return 0;
+        if (!dockContent?.fileDragActive || dockContent.fileDraggedIndex < 0 || delegateIndex === dockContent.fileDraggedIndex) return 0
 
-        const dragIdx = dockContent.fileDraggedIndex;
-        const dropIdx = dockContent.fileDropIndex;
-        const step = buttonSize + dotMargin * 2;
+        const dragIdx = dockContent.fileDraggedIndex
+        const dropIdx = dockContent.fileDropIndex
+        const step = buttonSize + dotMargin * 2
 
         if (dockContent.fileDragIntent === "unpin")
-            return delegateIndex > dragIdx ? -step : 0;
+            return delegateIndex > dragIdx ? -step : 0
 
         if (dockContent.fileDragIntent === "reorder") {
-            if (dragIdx < dropIdx && delegateIndex > dragIdx && delegateIndex <= dropIdx)
-                return -step;
-            if (dragIdx > dropIdx && delegateIndex >= dropIdx && delegateIndex < dragIdx)
-                return step;
+            if (dragIdx < dropIdx && delegateIndex > dragIdx && delegateIndex <= dropIdx) return -step
+            if (dragIdx > dropIdx && delegateIndex >= dropIdx && delegateIndex < dragIdx) return step
         }
 
-        return 0;
+        return 0
     }
 
     width: buttonSize + dotMargin * 2
@@ -170,40 +167,37 @@ DockButton {
         property bool wasDragging: false
 
         onPressed: {
-            wasDragging = false;
+            wasDragging = false
             if (dockContent?.fileDragGhostItem) {
-                const p = root.mapToItem(dockContent, 0, 0);
-                dockContent.fileDragGhostItem.x = p.x + root.dotMargin;
-                dockContent.fileDragGhostItem.y = p.y + root.dotMargin;
+                const p = root.mapToItem(dockContent, 0, 0)
+                dockContent.fileDragGhostItem.x = p.x + root.dotMargin
+                dockContent.fileDragGhostItem.y = p.y + root.dotMargin
             }
         }
 
         onPositionChanged: {
-            if (!drag.active)
-                return;
+            if (!drag.active) return
             if (!wasDragging) {
-                wasDragging = true;
-                dockContent.startFileDrag(root.delegateIndex);
+                wasDragging = true
+                dockContent.startFileDrag(root.delegateIndex)
             }
-            dockContent.moveFileDrag();
+            dockContent.moveFileDrag()
         }
 
-        onReleased: mouse => {
+        onReleased: (mouse) => {
             if (wasDragging) {
-                wasDragging = false;
-                dockContent.endFileDrag();
-                return;
+                wasDragging = false
+                dockContent.endFileDrag()
+                return
             }
             if (mouse.button === Qt.RightButton) {
-                dockContent.buttonHovered = false;
-                dockContent.lastHoveredButton = null;
-                fileContextMenu.open();
-                return;
+                dockContent.buttonHovered = false
+                dockContent.lastHoveredButton = null
+                fileContextMenu.open()
+                return
             }
 
-            Quickshell.execDetached({
-                command: ["xdg-open", root.filePath]
-            });
+            Quickshell.execDetached({ command: ["xdg-open", root.filePath] })
         }
     }
 
@@ -216,8 +210,7 @@ DockButton {
     Connections {
         target: fileContextMenu
         function onActiveChanged() {
-            if (dockContent)
-                dockContent.anyContextMenuOpen = fileContextMenu.active;
+            if (dockContent) dockContent.anyContextMenuOpen = fileContextMenu.active
         }
     }
 
@@ -233,9 +226,24 @@ DockButton {
         anchors.fill: parent
 
         Item {
+            id: fileIconContainer
             width: root.buttonSize
             height: root.buttonSize
             anchors.centerIn: parent
+
+            MaterialShape {
+                id: iconMask
+                width: Math.max(1, fileIconContainer.width)
+                height: Math.max(1, fileIconContainer.height)
+                shapeString: Config.options.appearance.icons.shapeMask
+                visible: false
+            }
+
+            layer.enabled: Config.options.appearance.icons.enableShapeMask
+            layer.effect: MultiEffect {
+                maskEnabled: true
+                maskSource: iconMask
+            }
 
             // Image thumbnail (shown for recognized image files)
             Image {
@@ -280,7 +288,10 @@ DockButton {
                 source: root.resolvedXdgIcon
 
                 // Force icon reload when the theme changes
-                backer.sourceSize: Qt.size(root.buttonSize + TaskbarApps.iconThemeRevision, root.buttonSize + TaskbarApps.iconThemeRevision)
+                backer.sourceSize: Qt.size(
+                    root.buttonSize + TaskbarApps.iconThemeRevision,
+                    root.buttonSize + TaskbarApps.iconThemeRevision
+                )
             }
 
             // Fallback folder icon for directories with no specific XDG icon

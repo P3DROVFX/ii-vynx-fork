@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
@@ -102,30 +103,49 @@ MouseArea {
         }
     }
 
-    IconImage {
-        id: trayIcon
-        visible: !Config.options.tray.monochromeIcons
-        source: root.item.icon
+    Item {
+        id: trayIconContainer
         anchors.centerIn: parent
         width: parent.width
         height: parent.height
-    }
 
-    Loader {
-        active: Config.options.tray.monochromeIcons
-        anchors.fill: trayIcon
-        sourceComponent: Item {
-            Desaturate {
-                id: desaturatedIcon
-                visible: false // There's already color overlay
-                anchors.fill: parent
-                source: trayIcon
-                desaturation: 0.8 // 1.0 means fully grayscale
-            }
-            ColorOverlay {
-                anchors.fill: desaturatedIcon
-                source: desaturatedIcon
-                color: ColorUtils.transparentize(Appearance.colors.colOnLayer0, 0.9)
+        MaterialShape {
+            id: iconMask
+            width: Math.max(1, trayIconContainer.width)
+            height: Math.max(1, trayIconContainer.height)
+            shapeString: Config.options.appearance.icons.shapeMask
+            visible: false
+        }
+
+        layer.enabled: Config.options.appearance.icons.enableShapeMask
+        layer.effect: MultiEffect {
+            maskEnabled: true
+            maskSource: iconMask
+        }
+
+        IconImage {
+            id: trayIcon
+            visible: !Config.options.tray.monochromeIcons
+            source: root.item.icon
+            anchors.fill: parent
+        }
+
+        Loader {
+            active: Config.options.tray.monochromeIcons
+            anchors.fill: trayIcon
+            sourceComponent: Item {
+                Desaturate {
+                    id: desaturatedIcon
+                    visible: false // There's already color overlay
+                    anchors.fill: parent
+                    source: trayIcon
+                    desaturation: 0.8 // 1.0 means fully grayscale
+                }
+                ColorOverlay {
+                    anchors.fill: desaturatedIcon
+                    source: desaturatedIcon
+                    color: ColorUtils.transparentize(Appearance.colors.colOnLayer0, 0.9)
+                }
             }
         }
     }

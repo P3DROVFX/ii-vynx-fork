@@ -4,6 +4,7 @@ import qs.modules.common.widgets
 import qs.modules.common.functions
 import Qt5Compat.GraphicalEffects
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Widgets
 
@@ -12,6 +13,20 @@ Item {
     property string appId: ""
     property bool isRunning: true
     property real iconOpacity: isRunning ? 1.0 : (Config.options.dock.dimInactiveIcons ? 0.55 : 1.0)
+
+    MaterialShape {
+        id: iconMask
+        width: Math.max(1, root.width)
+        height: Math.max(1, root.height)
+        shapeString: Config.options.appearance.icons.shapeMask
+        visible: false
+    }
+
+    layer.enabled: Config.options.appearance.icons.enableShapeMask
+    layer.effect: MultiEffect {
+        maskEnabled: true
+        maskSource: iconMask
+    }
 
     IconImage {
         id: baseIcon
