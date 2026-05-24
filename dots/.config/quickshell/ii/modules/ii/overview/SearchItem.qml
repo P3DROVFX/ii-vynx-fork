@@ -762,6 +762,9 @@ RippleButton {
         } else if (root.actionPanelOpen && event.key === Qt.Key_Right) {
             root.actionSelectedIndex = Math.min(root.allActionItems.length - 1, root.actionSelectedIndex + 1);
             event.accepted = true;
+        } else if (root.actionPanelOpen && (event.key === Qt.Key_Up || event.key === Qt.Key_Down)) {
+            root.actionPanelOpen = false;
+            event.accepted = true;
         }
     }
     Keys.onReleased: (event) => {

@@ -30,18 +30,29 @@ Singleton {
         // Starts with math prefix '='
         if (expr.startsWith(Config.options.search.prefix.math)) return true;
         
-        // Starts with a number or negative sign and number
-        if (/^[-]?\d/.test(expr)) return true;
-        
-        // Contains a number AND contains math operators or 'to' keyword
-        const hasNumber = /\d/.test(expr);
-        if (hasNumber) {
-            if (/[+\*\/^()]/.test(expr)) return true;
-            if (/\bto\b/i.test(expr)) return true;
-        }
-        
         // Starts with basic math functions
         if (/^(sqrt|sin|cos|tan|log|ln)\b/i.test(expr)) return true;
+        
+        // Verify if it contains a number
+        const hasNumber = /\d/.test(expr);
+        if (!hasNumber) return false;
+        
+        // Pure number is NOT a math query by default (e.g. searching for app ID/number)
+        // unless it's explicitly prefixed or contains operators/units
+        if (/^[-+]?\d+(\.\d+)?$/.test(expr)) return false;
+        
+        // If it starts with a number, check for common math structures:
+        // 1. Math operators: +, *, /, ^, %, ( or )
+        if (/[+\*\/^()%]/.test(expr)) return true;
+        
+        // 2. Spaces around a minus or plus sign: e.g. "12 - 3", "12 -3"
+        // But avoid matching words with hyphens like "3d-printer" or "1-password"
+        if (/\s+[-+]\s*/.test(expr) || /\d\s*[-+]\s*\d/.test(expr)) return true;
+        
+        // 3. Keywords like 'to' or 'in' for unit conversion: e.g. "12 usd to eur", "100 c to f"
+        // Avoid matching words that happen to contain "to" as substring
+        if (/\d+\s*(?:[a-zA-Z%]+)?\s+\bto\b\s+\b[a-zA-Z%]+\b/i.test(expr)) return true;
+        if (/\d+\s*\bto\b/i.test(expr)) return true;
         
         return false;
     }
@@ -474,20 +485,29 @@ Singleton {
                     iconType: LauncherSearchResult.IconType.System,
                     comment: `${w.class} — Workspace ${w.workspace?.id ?? "?"}`,
                     execute: () => {
-                        Hyprland.dispatch(`focuswindow address:${w.address}`);
+                        Hyprland.dispatch(`hl.dsp.focus({window = "address:${w.address}"})`);
                     },
                     actions: [
                         resultComp.createObject(null, {
                             name: Translation.tr("Close"),
                             iconName: "close",
                             iconType: LauncherSearchResult.IconType.Material,
-                            execute: () => { Hyprland.dispatch(`closewindow address:${w.address}`); }
+                            execute: () => {
+                                Hyprland.dispatch(`hl.dsp.window.close({window = "address:${w.address}"})`);
+                            }
                         }),
                         resultComp.createObject(null, {
                             name: Translation.tr("Move here"),
                             iconName: "move_item",
                             iconType: LauncherSearchResult.IconType.Material,
-                            execute: () => { Hyprland.dispatch(`movetoworkspacesilent e+0,address:${w.address}`); }
+                            execute: () => {
+                                const activeWsId = Hyprland.focusedMonitor?.activeWorkspace?.id;
+                                if (activeWsId) {
+                                    Hyprland.dispatch(`hl.dsp.window.move({ workspace = ${activeWsId}, follow = false, window = "address:${w.address}" })`);
+                                } else {
+                                    Hyprland.dispatch(`movetoworkspacesilent e+0,address:${w.address}`);
+                                }
+                            }
                         }),
                         resultComp.createObject(null, {
                             name: Translation.tr("Copy title"),

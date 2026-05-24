@@ -18,7 +18,16 @@ Item {
 
     readonly property string xdgConfigHome: Directories.config
     readonly property int typingDebounceInterval: 200
-    readonly property int typingResultLimit: 15
+    readonly property int typingResultLimit: {
+        const query = LauncherSearch.query;
+        if (!query) return 15;
+        const isPrefixed = query.startsWith(Config.options.search.prefix.app) ||
+                           query.startsWith(Config.options.search.prefix.fileBrowser) ||
+                           query.startsWith(Config.options.search.prefix.emojis) ||
+                           query.startsWith(Config.options.search.prefix.windowSearch) ||
+                           query.startsWith(Config.options.search.prefix.fileSearch);
+        return isPrefixed ? 500 : 15;
+    }
     readonly property bool isSearching: debounceTimer.running && searchingText !== ""
     readonly property bool showSkeletons: isSearching && (typeof resultModel === "undefined" || !resultModel || resultModel.values.length === 0 || (resultModel.values.length === 1 && resultModel.values[0] && resultModel.values[0].key === "mpris:now-playing"))
 

@@ -222,6 +222,7 @@ RowLayout {
                     ? root.currentResultIndex 
                     : 0;
                 const activeResult = LauncherSearch.results[activeIndex];
+                if (!activeResult) return;
                 const prefix = Config.options.search.prefix.fileBrowser;
                 
                 let newText = "";
