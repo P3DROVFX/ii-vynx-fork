@@ -19,6 +19,18 @@ cd ~/Downloads/ii-vynx
 
 ---
 
+## 🌟 Custom Features
+
+### 🔍 Revamped Search Launcher (Power-User)
+This repository includes a completely revamped search launcher widget (`Super + D` or `Super + Space`) designed for power-users, complete with:
+*   **Prefix-less Math & Unit Converter**: Real-time evaluation of mathematical expressions (including functions like `sqrt`, `sin`, `cos`) and units/currency conversions (e.g. `120 usd to eur` or `50c to f`) right inside the preview results block without needing a prefix.
+*   **Secure System Controls**: Instantly lock the screen (`lock`), suspend the PC (`suspend`), reboot (`reboot`), shutdown (`poweroff`), or restart the Quickshell shell (`restart`) directly from the search bar.
+*   **Two-Step Confirmation Safeguard**: Clicking or hitting Enter on critical system commands dynamically prompts for confirmation inside the launcher (e.g., `Reboot PC (Are you sure?)`), keeping the launcher open and requiring a second Enter/click to execute, while cancelling automatically if you type or move away.
+
+For a full setup guide, code diffs, and detailed configuration parameters, check out the [Search Upgrades & Implementation Guide](dots/.config/quickshell/ii/modules/ii/overview/IMPLEMENTATION_GUIDE.md).
+
+---
+
 ## 🔄 Managing Sources
 
 You can switch between your personal fork and the official upstream repository directly from the **About** page in Quickshell Settings (`Super + S` -> About).

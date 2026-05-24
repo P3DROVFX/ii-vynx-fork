@@ -28,13 +28,13 @@ Item {
     readonly property bool artworkEnabled: Config.options.bar.mediaPlayer.artwork.enable
 
     readonly property int progressButtonSize: 20
-    readonly property int artworkBoxSize: artworkEnabled ? Math.min(25, Appearance.sizes.barHeight - 8) : 0
+    readonly property int artworkBoxSize: artworkEnabled ? Math.min(25, Appearance.sizes.baseBarHeight - 8) : 0
     readonly property int artworkContentPadding: artworkEnabled ? 6 : 0
 
     property int textMetricsSpacing: artworkEnabled ? 70 : 50 // text metrics returns width without spacing
     property int textMetricsAdvance: Math.min(textMetrics.advanceWidth + textMetricsSpacing, Config.options.bar.mediaPlayer.maxSize)
     implicitWidth: LyricsService.hasSyncedLines && root.lyricsEnabled ? lyricsCustomSize : useFixedSize ? customSize : textMetricsAdvance
-    implicitHeight: Appearance.sizes.barHeight
+    implicitHeight: Appearance.sizes.baseBarHeight
 
     Behavior on implicitWidth {
         animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(root)

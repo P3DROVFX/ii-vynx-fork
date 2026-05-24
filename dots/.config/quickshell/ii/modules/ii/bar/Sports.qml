@@ -23,7 +23,7 @@ MouseArea {
     property color onActivatedColor: Appearance.colors.colOnPrimaryContainer
 
     implicitWidth: shouldBeVisible ? (isVertical ? Appearance.sizes.verticalBarWidth : sportsLayout.implicitWidth) : 0
-    implicitHeight: shouldBeVisible ? (isVertical ? sportsLayout.implicitHeight : Appearance.sizes.barHeight) : 0
+    implicitHeight: shouldBeVisible ? (isVertical ? sportsLayout.implicitHeight : Appearance.sizes.baseBarHeight) : 0
     hoverEnabled: true
 
     // Vertical offset for the slide animation - using transform: Translate bypasses anchor restrictions

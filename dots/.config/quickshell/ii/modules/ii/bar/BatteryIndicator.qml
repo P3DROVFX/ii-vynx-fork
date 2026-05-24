@@ -26,7 +26,7 @@ MouseArea {
     visible: Battery.available
 
     implicitWidth: (Config.options.battery.style === "android16" ? android16Battery.width : batteryContainer.width) + 12
-    implicitHeight: Appearance.sizes.barHeight
+    implicitHeight: Appearance.sizes.baseBarHeight
 
     hoverEnabled: !Config.options.bar.tooltips.clickToShow
 

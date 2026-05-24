@@ -13,7 +13,7 @@ Item {
     readonly property bool is12h: /a/i.test(Config.options.time.format)
 
     implicitWidth: vertical ? Appearance.sizes.verticalBarWidth : (rowLoader.item?.implicitWidth ?? 0) + 8
-    implicitHeight: vertical ? (colLoader.item?.implicitHeight ?? 0) + 8 : Appearance.sizes.barHeight
+    implicitHeight: vertical ? (colLoader.item?.implicitHeight ?? 0) + 8 : Appearance.sizes.baseBarHeight
 
     width: implicitWidth
     height: implicitHeight
@@ -158,7 +158,7 @@ Item {
             MaterialShape {
                 shapeString: "Cookie12Sided"
                 color: Appearance.colors.colPrimary
-                implicitSize: Appearance.sizes.barHeight - 8
+                implicitSize: Appearance.sizes.baseBarHeight - 8
                 StyledText {
                     anchors.centerIn: parent
                     font.pixelSize: Appearance.font.pixelSize.small
@@ -180,7 +180,7 @@ Item {
             MaterialShape {
                 shapeString: "Cookie12Sided"
                 color: Appearance.colors.colSecondaryContainer
-                implicitSize: Appearance.sizes.barHeight - 8
+                implicitSize: Appearance.sizes.baseBarHeight - 8
                 StyledText {
                     anchors.centerIn: parent
                     font.pixelSize: Appearance.font.pixelSize.small
@@ -195,7 +195,7 @@ Item {
                 visible: layoutHoriz.showAMPM
                 shapeString: "Cookie12Sided"
                 color: Appearance.colors.colTertiaryContainer
-                implicitSize: Appearance.sizes.barHeight - 16
+                implicitSize: Appearance.sizes.baseBarHeight - 16
                 StyledText {
                     anchors.centerIn: parent
                     font.pixelSize: Appearance.font.pixelSize.smallest

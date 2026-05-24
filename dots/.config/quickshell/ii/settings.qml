@@ -72,6 +72,11 @@ ApplicationWindow {
             component: "modules/settings/HyprlandConfig.qml"
         },
         {
+            name: Translation.tr("Search"),
+            icon: "manage_search",
+            component: "modules/settings/SearchConfig.qml"
+        },
+        {
             name: Translation.tr("About"),
             icon: "info",
             component: "modules/settings/About.qml"
@@ -358,27 +363,31 @@ ApplicationWindow {
                         }
                     }
 
-                    NavigationRailTabArray {
-                        currentIndex: root.currentPage
-                        expanded: navRail.expanded
-                        Repeater {
-                            model: root.pages
-                            NavigationRailButton {
-                                required property var index
-                                required property var modelData
-                                toggled: root.currentPage === index
-                                onPressed: root.currentPage = index
-                                expanded: navRail.expanded
-                                buttonIcon: modelData.icon
-                                buttonIconRotation: modelData.iconRotation || 0
-                                buttonText: modelData.name
-                                showToggledHighlight: false
+                    ScrollView {
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        clip: true
+                        ScrollBar.vertical.policy: ScrollBar.AsNeeded
+
+                        NavigationRailTabArray {
+                            width: parent.width
+                            currentIndex: root.currentPage
+                            expanded: navRail.expanded
+                            Repeater {
+                                model: root.pages
+                                NavigationRailButton {
+                                    required property var index
+                                    required property var modelData
+                                    toggled: root.currentPage === index
+                                    onPressed: root.currentPage = index
+                                    expanded: navRail.expanded
+                                    buttonIcon: modelData.icon
+                                    buttonIconRotation: modelData.iconRotation || 0
+                                    buttonText: modelData.name
+                                    showToggledHighlight: false
+                                }
                             }
                         }
-                    }
-
-                    Item {
-                        Layout.fillHeight: true
                     }
                 }
             }

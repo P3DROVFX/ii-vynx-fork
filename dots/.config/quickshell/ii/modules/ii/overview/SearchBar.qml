@@ -12,14 +12,25 @@ RowLayout {
     id: root
     spacing: 6
     property bool animateWidth: false
+    property bool clipboardMode: false
+    property int clipboardWidth: 860
     property alias searchInput: searchInput
     property string searchingText
+    property int currentResultIndex: 0
+
+    signal navigateUp()
+    signal navigateDown()
+    signal navigateLeft()
+    signal navigateRight()
+    signal activate()
+    signal deleteSelected()
+    signal ctrlKPressed()
 
     function forceFocus() {
         searchInput.forceActiveFocus();
     }
 
-    enum SearchPrefixType { Action, App, Clipboard, Emojis, Math, ShellCommand, WebSearch, DefaultSearch }
+    enum SearchPrefixType { Action, App, Clipboard, Emojis, Math, ShellCommand, WebSearch, WindowSearch, FileBrowser, DefaultSearch }
 
     property var searchPrefixType: {
         if (root.searchingText.startsWith(Config.options.search.prefix.action)) return SearchBar.SearchPrefixType.Action;
@@ -29,6 +40,8 @@ RowLayout {
         if (root.searchingText.startsWith(Config.options.search.prefix.math)) return SearchBar.SearchPrefixType.Math;
         if (root.searchingText.startsWith(Config.options.search.prefix.shellCommand)) return SearchBar.SearchPrefixType.ShellCommand;
         if (root.searchingText.startsWith(Config.options.search.prefix.webSearch)) return SearchBar.SearchPrefixType.WebSearch;
+        if (root.searchingText.startsWith(Config.options.search.prefix.windowSearch)) return SearchBar.SearchPrefixType.WindowSearch;
+        if (root.searchingText.startsWith(Config.options.search.prefix.fileBrowser)) return SearchBar.SearchPrefixType.FileBrowser;
         return SearchBar.SearchPrefixType.DefaultSearch;
     }
     
@@ -36,7 +49,74 @@ RowLayout {
         id: searchIcon
         Layout.alignment: Qt.AlignVCenter
         iconSize: Appearance.font.pixelSize.huge
-        shape: switch(root.searchPrefixType) {
+        opacity: 1.0
+        scale: 1.0
+
+        property int _prefixType: root.searchPrefixType
+        property int _lastPrefixType: root.searchPrefixType
+
+        function triggerTransition() {
+            iconFadeOut.stop();
+            iconFadeIn.stop();
+            iconFadeOut.start();
+        }
+
+        SequentialAnimation {
+            id: iconFadeOut
+            ParallelAnimation {
+                NumberAnimation {
+                    target: searchIcon
+                    property: "opacity"
+                    to: 0
+                    duration: Appearance.animation.elementMoveFast.duration / 2
+                    easing.type: Easing.InQuad
+                }
+                NumberAnimation {
+                    target: searchIcon
+                    property: "scale"
+                    to: 0.7
+                    duration: Appearance.animation.elementMoveFast.duration / 2
+                    easing.type: Easing.InQuad
+                }
+            }
+            ScriptAction {
+                script: {
+                    searchIcon._prefixType = root.searchPrefixType;
+                    iconFadeIn.start();
+                }
+            }
+        }
+
+        SequentialAnimation {
+            id: iconFadeIn
+            ParallelAnimation {
+                NumberAnimation {
+                    target: searchIcon
+                    property: "opacity"
+                    to: 1.0
+                    duration: Appearance.animation.elementMoveFast.duration
+                    easing.type: Easing.OutQuad
+                }
+                NumberAnimation {
+                    target: searchIcon
+                    property: "scale"
+                    to: 1.0
+                    duration: Appearance.animation.elementMoveFast.duration
+                    easing.type: Easing.OutQuad
+                }
+            }
+        }
+
+        Connections {
+            target: root
+            function onSearchPrefixTypeChanged() {
+                if (root.searchPrefixType !== searchIcon._prefixType) {
+                    searchIcon.triggerTransition();
+                }
+            }
+        }
+
+        shape: switch(searchIcon._prefixType) {
             case SearchBar.SearchPrefixType.Action: return MaterialShape.Shape.Pill;
             case SearchBar.SearchPrefixType.App: return MaterialShape.Shape.Clover4Leaf;
             case SearchBar.SearchPrefixType.Clipboard: return MaterialShape.Shape.Gem;
@@ -44,9 +124,11 @@ RowLayout {
             case SearchBar.SearchPrefixType.Math: return MaterialShape.Shape.PuffyDiamond;
             case SearchBar.SearchPrefixType.ShellCommand: return MaterialShape.Shape.PixelCircle;
             case SearchBar.SearchPrefixType.WebSearch: return MaterialShape.Shape.SoftBurst;
+            case SearchBar.SearchPrefixType.WindowSearch: return MaterialShape.Shape.Arch;
+            case SearchBar.SearchPrefixType.FileBrowser: return MaterialShape.Shape.Square;
             default: return MaterialShape.Shape.Cookie7Sided;
         }
-        text: switch (root.searchPrefixType) {
+        text: switch (searchIcon._prefixType) {
             case SearchBar.SearchPrefixType.Action: return "settings_suggest";
             case SearchBar.SearchPrefixType.App: return "apps";
             case SearchBar.SearchPrefixType.Clipboard: return "content_paste_search";
@@ -54,6 +136,8 @@ RowLayout {
             case SearchBar.SearchPrefixType.Math: return "calculate";
             case SearchBar.SearchPrefixType.ShellCommand: return "terminal";
             case SearchBar.SearchPrefixType.WebSearch: return "travel_explore";
+            case SearchBar.SearchPrefixType.WindowSearch: return "select_window";
+            case SearchBar.SearchPrefixType.FileBrowser: return "folder_open";
             case SearchBar.SearchPrefixType.DefaultSearch: return "search";
             default: return "search";
         }
@@ -62,40 +146,103 @@ RowLayout {
         id: searchInput
         Layout.topMargin: 4
         Layout.bottomMargin: 4
+        Layout.fillWidth: root.clipboardMode
         implicitHeight: 40
         focus: GlobalStates.overviewOpen
         font.pixelSize: Appearance.font.pixelSize.small
         placeholderText: Translation.tr("Search, calculate or run")
-        implicitWidth: root.searchingText == "" ? Appearance.sizes.searchWidthCollapsed : Appearance.sizes.searchWidth
+        implicitWidth: root.clipboardMode
+            ? root.clipboardWidth
+            : (root.searchingText == "" ? Appearance.sizes.searchWidthCollapsed : Appearance.sizes.searchWidth)
 
         Behavior on implicitWidth {
             id: searchWidthBehavior
-            enabled: root.animateWidth
+            enabled: !root.clipboardMode
             NumberAnimation {
-                duration: 300
-                easing.type: Appearance.animation.elementMove.type
-                easing.bezierCurve: Appearance.animation.elementMove.bezierCurve
+                duration: 350
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Appearance.animationCurves.emphasizedDecel
             }
         }
 
         onTextChanged: LauncherSearch.query = text
 
         onAccepted: {
+            if (root.clipboardMode) {
+                root.activate();
+                return;
+            }
             if (appResults.count > 0) {
-                // Get the first visible delegate and trigger its click
-                let firstItem = appResults.itemAtIndex(0);
-                if (firstItem && firstItem.clicked) {
-                    firstItem.clicked();
+                let currentItem = appResults.itemAtIndex(appResults.currentIndex);
+                if (currentItem && currentItem.clicked) {
+                    currentItem.clicked();
                 }
             }
         }
 
         Keys.onPressed: event => {
-            if (event.key === Qt.Key_Tab) {
+            if (event.key === Qt.Key_K && (event.modifiers & Qt.ControlModifier)) {
+                root.ctrlKPressed();
+                event.accepted = true;
+                return;
+            }
+            if (event.key === Qt.Key_Up) {
+                root.navigateUp();
+                event.accepted = true;
+                return;
+            } else if (event.key === Qt.Key_Down) {
+                root.navigateDown();
+                event.accepted = true;
+                return;
+            }
+            if (root.clipboardMode) {
+                if (event.key === Qt.Key_Left) {
+                    root.navigateLeft();
+                    event.accepted = true;
+                    return;
+                } else if (event.key === Qt.Key_Right) {
+                    root.navigateRight();
+                    event.accepted = true;
+                    return;
+                } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                    root.activate();
+                    event.accepted = true;
+                    return;
+                } else if (event.key === Qt.Key_Delete && (event.modifiers & Qt.ShiftModifier)) {
+                    root.deleteSelected();
+                    event.accepted = true;
+                    return;
+                }
+            }
+             if (event.key === Qt.Key_Tab || (event.key === Qt.Key_Right && searchInput.cursorPosition === searchInput.text.length)) {
                 if (LauncherSearch.results.length === 0) return;
-                const tabbedText = LauncherSearch.results[0].name;
-                LauncherSearch.query = tabbedText;
-                searchInput.text = tabbedText;
+                
+                // Get the result at the active keyboard-navigated index
+                const activeIndex = (root.currentResultIndex >= 0 && root.currentResultIndex < LauncherSearch.results.length) 
+                    ? root.currentResultIndex 
+                    : 0;
+                const activeResult = LauncherSearch.results[activeIndex];
+                const prefix = Config.options.search.prefix.fileBrowser;
+                
+                let newText = "";
+                if (activeResult.key && activeResult.key.startsWith("alias:") && (activeResult.type === Translation.tr("Folder Alias") || activeResult.verb === Translation.tr("Browse"))) {
+                    const target = activeResult.comment || "";
+                    newText = prefix + target + (target.endsWith("/") ? "" : "/");
+                } else if (searchInput.text.startsWith(prefix)) {
+                    const currentPath = searchInput.text.slice(prefix.length);
+                    const lastName = currentPath.lastIndexOf("/");
+                    const dirBase = lastName >= 0 ? currentPath.slice(0, lastName + 1) : "";
+                    const name = activeResult.name;
+                    const suffix = (activeResult.type === Translation.tr("Directory") && !name.endsWith("/")) ? "/" : "";
+                    newText = prefix + dirBase + name + suffix;
+                } else {
+                    newText = activeResult.name;
+                }
+                
+                if (newText !== "") {
+                    LauncherSearch.query = newText;
+                    searchInput.text = newText;
+                }
                 event.accepted = true;
             }
         }

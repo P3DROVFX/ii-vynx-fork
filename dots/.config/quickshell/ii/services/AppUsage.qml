@@ -8,75 +8,93 @@ import Quickshell.Io
 
 /**
  * Tracks application launch frequency for "frecency" search ranking.
+ * Uses time-window bucketed scoring: launches in recent time windows
+ * contribute more to the score than older ones.
  * Persists data to ~/.local/state/quickshell/user/app_usage.json
  */
 Singleton {
     id: root
 
-    property var launchCounts: ({})
-    property real maxCount: 1
+    property var launchData: ({})
     property bool ready: false
 
+    // Time window weights for frecency calculation
+    readonly property var timeWindows: [
+        { maxAge: 1 * 60 * 60 * 1000, weight: 16 },        // Last hour
+        { maxAge: 24 * 60 * 60 * 1000, weight: 8 },         // Last day
+        { maxAge: 7 * 24 * 60 * 60 * 1000, weight: 4 },     // Last week
+        { maxAge: 30 * 24 * 60 * 60 * 1000, weight: 2 },    // Last month
+        { maxAge: Infinity, weight: 1 }                       // Older
+    ]
+
     /**
-     * Record an app launch - increments the count for the given app ID
+     * Record an app launch - stores timestamp for frecency calculation
      */
     function recordLaunch(appId) {
         if (!appId || appId.length === 0) return;
-        
-        let currentData = root.launchCounts[appId];
-        let currentCount = 0;
-        if (typeof currentData === "number") {
-            currentCount = currentData;
-        } else if (currentData && typeof currentData === "object") {
-            currentCount = currentData.count || 0;
+
+        const now = new Date().getTime();
+        let updated = Object.assign({}, root.launchData);
+
+        if (!updated[appId]) {
+            updated[appId] = { timestamps: [], count: 0 };
         }
 
-        const newCount = currentCount + 1;
-        const now = new Date().getTime();
-        
-        // Update the counts object (need to reassign for change detection)
-        let updated = Object.assign({}, root.launchCounts);
-        updated[appId] = {
-            count: newCount,
-            lastLaunchTime: now
-        };
-        root.launchCounts = updated;
-        
-        // Update max for normalization
-        if (newCount > root.maxCount) {
-            root.maxCount = newCount;
+        // Keep last 100 timestamps per app to avoid unbounded growth
+        let timestamps = Array.from(updated[appId].timestamps || []);
+        timestamps.push(now);
+        if (timestamps.length > 100) {
+            timestamps = timestamps.slice(-100);
         }
+
+        updated[appId] = {
+            timestamps: timestamps,
+            count: (updated[appId].count || 0) + 1
+        };
+
+        root.launchData = updated;
     }
 
     /**
-     * Get normalized score (0-1) for an app based on launch frequency
+     * Get frecency score for an app based on time-windowed launch history
      */
     function getScore(appId) {
         if (!appId || appId.length === 0) return 0;
-        let data = root.launchCounts[appId];
+        let data = root.launchData[appId];
         if (!data) return 0;
-        
-        let count = 0;
-        let lastLaunchTime = 0;
+
+        // Handle legacy format (plain number)
         if (typeof data === "number") {
-            count = data;
-        } else {
-            count = data.count || 0;
-            lastLaunchTime = data.lastLaunchTime || 0;
+            return data > 0 ? 1 : 0;
+        }
+        // Handle legacy format with count + lastLaunchTime
+        if (data.count !== undefined && !data.timestamps) {
+            const count = data.count || 0;
+            if (count === 0) return 0;
+            const lastLaunch = data.lastLaunchTime || 0;
+            if (lastLaunch === 0) return count > 0 ? 1 : 0;
+            const now = new Date().getTime();
+            const age = now - lastLaunch;
+            for (const tw of root.timeWindows) {
+                if (age <= tw.maxAge) return count * tw.weight;
+            }
+            return count;
         }
 
-        if (count === 0 || root.maxCount === 0) return 0;
-        
-        let score = count / root.maxCount;
-        
-        if (lastLaunchTime > 0) {
-            const now = new Date().getTime();
-            const daysSinceLaunch = (now - lastLaunchTime) / (1000 * 60 * 60 * 24);
-            // Decay curve: exponential decay with half-life of roughly 20 days.
-            const decay = Math.exp(-Math.max(0, daysSinceLaunch) / 30);
-            score = score * (0.3 + 0.7 * decay); // Floor at 30% of original score
+        const timestamps = data.timestamps || [];
+        if (timestamps.length === 0) return 0;
+
+        const now = new Date().getTime();
+        let score = 0;
+        for (const ts of timestamps) {
+            const age = now - ts;
+            for (const tw of root.timeWindows) {
+                if (age <= tw.maxAge) {
+                    score += tw.weight;
+                    break;
+                }
+            }
         }
-        
         return score;
     }
 
@@ -85,10 +103,20 @@ Singleton {
      */
     function getCount(appId) {
         if (!appId || appId.length === 0) return 0;
-        let data = root.launchCounts[appId];
+        let data = root.launchData[appId];
         if (typeof data === "number") return data;
-        if (data && typeof data === "object") return data.count || 0;
+        if (data && typeof data === "object") return data.count || (data.timestamps || []).length;
         return 0;
+    }
+
+    /**
+     * Reset ranking for a specific app
+     */
+    function resetRanking(appId) {
+        if (!appId || appId.length === 0) return;
+        let updated = Object.assign({}, root.launchData);
+        delete updated[appId];
+        root.launchData = updated;
     }
 
     // Persistence
@@ -101,13 +129,12 @@ Singleton {
 
     Timer {
         id: fileWriteTimer
-        interval: 500 // Slightly longer delay to batch rapid launches
+        interval: 500
         repeat: false
         onTriggered: usageFileView.writeAdapter()
     }
 
-    // Trigger save when counts change
-    onLaunchCountsChanged: {
+    onLaunchDataChanged: {
         if (root.ready) {
             fileWriteTimer.restart();
         }
@@ -121,17 +148,7 @@ Singleton {
         onFileChanged: fileReloadTimer.restart()
         onLoaded: {
             root.ready = true;
-            // Recalculate maxCount from loaded data
-            let max = 1;
-            for (const appId in usageAdapter.counts) {
-                let data = usageAdapter.counts[appId];
-                let c = typeof data === "number" ? data : (data.count || 0);
-                if (c > max) {
-                    max = c;
-                }
-            }
-            root.maxCount = max;
-            root.launchCounts = usageAdapter.counts;
+            root.launchData = usageAdapter.data;
         }
         onLoadFailed: error => {
             if (error == FileViewError.FileNotFound) {
@@ -142,7 +159,7 @@ Singleton {
 
         adapter: JsonAdapter {
             id: usageAdapter
-            property var counts: root.launchCounts
+            property var data: root.launchData
         }
     }
 }

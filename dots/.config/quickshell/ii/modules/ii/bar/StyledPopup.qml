@@ -199,7 +199,7 @@ LazyLoader {
                 return (heroHeight + margin * 2) + (_commitHeight - (heroHeight + margin * 2)) * popupWindow.animProgress;
             }
 
-            color: Appearance.m3colors.m3surfaceContainer
+            color: Config.options.appearance.transparency.popups ? Appearance.colors.colLayer0 : Appearance.m3colors.m3surfaceContainer
             radius: root.popupRadius
             
             Item {

@@ -109,7 +109,7 @@ PopupWindow {
         opacity: previewPopup.show ? 1 : 0
         visible: (appTopLevel?.toplevels?.length ?? 0) > 0
         clip: true
-        color: Appearance.m3colors.m3surfaceContainer
+        color: Config.options.appearance.transparency.popups ? Appearance.colors.colLayer0 : Appearance.m3colors.m3surfaceContainer
         radius: Appearance.rounding.normal
         implicitHeight: previewRowLayout.implicitHeight + padding * 2
         implicitWidth: previewRowLayout.implicitWidth + padding * 2

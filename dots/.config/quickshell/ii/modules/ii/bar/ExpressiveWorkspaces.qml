@@ -22,7 +22,7 @@ Item {
 
     readonly property int workspacesShown: Config.options.bar.workspaces.shown
     readonly property int workspaceGroup: Math.floor((effectiveActiveWorkspaceId - 1) / root.workspacesShown)
-    property int workspaceButtonWidth: vertical ? Appearance.sizes.verticalBarWidth - 8 : Appearance.sizes.barHeight - 8
+    property int workspaceButtonWidth: vertical ? Appearance.sizes.verticalBarWidth - 8 : Appearance.sizes.baseBarHeight - 8
 
     property bool showNumbers: false
     Timer {
@@ -48,7 +48,7 @@ Item {
     }
 
     implicitWidth: vertical ? Appearance.sizes.verticalBarWidth : (contentLayout.implicitWidth)
-    implicitHeight: vertical ? (contentLayout.implicitHeight) : Appearance.sizes.barHeight
+    implicitHeight: vertical ? (contentLayout.implicitHeight) : Appearance.sizes.baseBarHeight
 
     MouseArea {
         anchors.fill: parent

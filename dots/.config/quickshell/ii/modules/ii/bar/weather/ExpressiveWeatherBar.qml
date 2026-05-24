@@ -13,7 +13,7 @@ MouseArea {
     property bool isMaterial: true
 
     implicitWidth: vertical ? Appearance.sizes.verticalBarWidth : (isMaterial ? materialPill.implicitWidth : defaultRow.implicitWidth + 6)
-    implicitHeight: vertical ? (isMaterial ? materialPillVert.implicitHeight : defaultCol.implicitHeight + 6) : Appearance.sizes.barHeight
+    implicitHeight: vertical ? (isMaterial ? materialPillVert.implicitHeight : defaultCol.implicitHeight + 6) : Appearance.sizes.baseBarHeight
     
     width: implicitWidth
     height: implicitHeight
@@ -80,7 +80,7 @@ MouseArea {
         anchors.centerIn: parent
         color: Appearance.colors.colPrimaryContainer
         radius: Appearance.rounding.full
-        implicitHeight: Appearance.sizes.barHeight - 8
+        implicitHeight: Appearance.sizes.baseBarHeight - 8
         height: implicitHeight
         implicitWidth: tempText.implicitWidth + iconCircle.width + 20
         width: implicitWidth

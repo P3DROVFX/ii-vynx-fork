@@ -13,13 +13,37 @@ Singleton {
     id: root
 
     property string query: ""
+    property int _mprisTrigger: 0
 
     function ensurePrefix(prefix) {
-        if ([Config.options.search.prefix.action, Config.options.search.prefix.app, Config.options.search.prefix.clipboard, Config.options.search.prefix.emojis, Config.options.search.prefix.math, Config.options.search.prefix.shellCommand, Config.options.search.prefix.webSearch, Config.options.search.prefix.fileSearch].some(i => root.query.startsWith(i))) {
+        if ([Config.options.search.prefix.action, Config.options.search.prefix.app, Config.options.search.prefix.clipboard, Config.options.search.prefix.emojis, Config.options.search.prefix.math, Config.options.search.prefix.shellCommand, Config.options.search.prefix.webSearch, Config.options.search.prefix.windowSearch, Config.options.search.prefix.fileBrowser, Config.options.search.prefix.fileSearch].some(i => root.query.startsWith(i))) {
             root.query = prefix + root.query.slice(1);
         } else {
             root.query = prefix + root.query;
         }
+    }
+
+    function isMathQuery(expr) {
+        expr = expr.trim();
+        if (expr.length === 0) return false;
+        
+        // Starts with math prefix '='
+        if (expr.startsWith(Config.options.search.prefix.math)) return true;
+        
+        // Starts with a number or negative sign and number
+        if (/^[-]?\d/.test(expr)) return true;
+        
+        // Contains a number AND contains math operators or 'to' keyword
+        const hasNumber = /\d/.test(expr);
+        if (hasNumber) {
+            if (/[+\*\/^()]/.test(expr)) return true;
+            if (/\bto\b/i.test(expr)) return true;
+        }
+        
+        // Starts with basic math functions
+        if (/^(sqrt|sin|cos|tan|log|ln)\b/i.test(expr)) return true;
+        
+        return false;
     }
 
     // https://specifications.freedesktop.org/menu/latest/category-registry.html
@@ -136,6 +160,7 @@ Singleton {
     property var allActions: searchActions.concat(userActionScripts)
 
     property string mathResult: ""
+    property string confirmKey: ""
     property bool clipboardWorkSafetyActive: {
         const enabled = Config.options.workSafety.enable.clipboard;
         const sensitiveNetwork = (StringUtils.stringListContainsSubstring(Network.networkName.toLowerCase(), Config.options.workSafety.triggerCondition.networkNameKeywords));
@@ -154,6 +179,8 @@ Singleton {
         interval: Config.options.search.nonAppResultDelay
         onTriggered: {
             let expr = root.query;
+            if (!root.isMathQuery(expr)) return;
+
             if (expr.startsWith(Config.options.search.prefix.math)) {
                 expr = expr.slice(Config.options.search.prefix.math.length);
             }
@@ -161,12 +188,56 @@ Singleton {
         }
     }
 
-    onQueryChanged: {
-        let expr = root.query;
-        if (expr.startsWith(Config.options.search.prefix.fileSearch)) {
-            expr = expr.slice(Config.options.search.prefix.fileSearch.length);
-            fileProc.searchFiles(expr);
+    // File browser: debounce browse calls to avoid Process flicker
+    property string _fileBrowserDir: ""
+    Timer {
+        id: fileBrowserDebounce
+        interval: 120
+        onTriggered: {
+            if (root._fileBrowserDir.length > 0)
+                fileBrowserProc.browse(root._fileBrowserDir);
         }
+    }
+
+    // File search: debounce calls to avoid Process/Disk spelling flicker
+    property string _fileSearchExpr: ""
+    Timer {
+        id: fileSearchDebounce
+        interval: 250 // slightly longer because fd search is expensive
+        onTriggered: {
+            if (root._fileSearchExpr.length >= 2)
+                fileProc.searchFiles(root._fileSearchExpr);
+        }
+    }
+
+    onQueryChanged: {
+        if (root.query.startsWith(Config.options.search.prefix.fileSearch)) {
+            const fileExpr = root.query.slice(Config.options.search.prefix.fileSearch.length);
+            root._fileSearchExpr = fileExpr;
+            fileSearchDebounce.restart();
+        } else {
+            fileSearchDebounce.stop();
+            root._fileSearchExpr = "";
+            root.fileResults = [];
+        }
+
+        if (root.query.startsWith(Config.options.search.prefix.fileBrowser)) {
+            const rawPath = root.query.slice(Config.options.search.prefix.fileBrowser.length);
+            const homePath = FileUtils.trimFileProtocol(Directories.home);
+            const expandedPath = rawPath.startsWith("/") ? rawPath : (homePath + "/" + rawPath);
+            const lastSlash = expandedPath.lastIndexOf("/");
+            const dirPath = lastSlash >= 0 ? expandedPath.slice(0, lastSlash + 1) : expandedPath;
+            root._fileBrowserDir = dirPath;
+            fileBrowserDebounce.restart();
+        } else {
+            root._fileBrowserDir = "";
+            root.fileBrowserResults = [];
+        }
+
+        if (!root.isMathQuery(root.query)) {
+            root.mathResult = "";
+        }
+        root.confirmKey = "";
     }
 
 
@@ -205,11 +276,95 @@ Singleton {
 
     }
 
+    // ========== File Browser (directory navigation) ==========
+    property var fileBrowserResults: []
+    Process {
+        id: fileBrowserProc
+        function browse(path) {
+            if (path.length < 1) return;
+            fileBrowserProc.running = false;
+            // List directory contents, dirs first, with trailing slash for dirs
+            fileBrowserProc.command = ["bash", "-c", `ls -1 -p "${path}" 2>/dev/null | head -50`];
+            fileBrowserProc.running = true;
+        }
+        stdout: StdioCollector {
+            id: fileBrowserCollector
+            onStreamFinished: {
+                const rawResult = fileBrowserCollector.text;
+                const result = rawResult.split('\n').filter(l => l.length > 0);
+                root.fileBrowserResults = result;
+            }
+        }
+    }
+
+    // ========== Window Search ==========
+    function getWindowResults(searchString) {
+        const windows = HyprlandData.windowList || [];
+        if (searchString === "") return windows;
+        const lower = searchString.toLowerCase();
+        return windows.filter(w => {
+            const title = (w.title || "").toLowerCase();
+            const cls = (w.class || "").toLowerCase();
+            return title.includes(lower) || cls.includes(lower);
+        });
+    }
+
+    // ========== Shell Snippets ==========
+    function getShellSnippetActions() {
+        const snippets = Config.options?.search?.shellSnippets ?? [];
+        return snippets.map(snippet => ({
+            action: snippet.alias || snippet.name || "snippet",
+            name: snippet.name || snippet.alias || "Shell Snippet",
+            command: snippet.command || "",
+            execute: (args) => {
+                let cmd = snippet.command || "";
+                if (args) cmd += " " + args;
+                Quickshell.execDetached(["bash", "-c", cmd]);
+            }
+        }));
+    }
+
     property list<var> results: {
+        let _ = root._mprisTrigger;
         // Search results are handled here
-        ////////////////// Skip? //////////////////
-        if (root.query == "")
-            return [];
+
+        ////////////////// MPRIS (empty query) //////////////////
+        if (root.query === "") {
+            let mprisResults = [];
+            if (MprisController.activePlayer) {
+                const player = MprisController.activePlayer;
+                const title = player.trackTitle || Translation.tr("Unknown");
+                const artist = player.trackArtist || "";
+                const displayName = artist ? `${title} — ${artist}` : title;
+
+                mprisResults.push(resultComp.createObject(null, {
+                    key: "mpris:now-playing",
+                    name: displayName,
+                    type: Translation.tr("Now Playing"),
+                    verb: MprisController.isPlaying ? Translation.tr("Pause") : Translation.tr("Play"),
+                    iconName: MprisController.isPlaying ? "pause" : "play_arrow",
+                    iconType: LauncherSearchResult.IconType.Material,
+                    execute: () => {
+                        MprisController.togglePlaying();
+                    },
+                    actions: [
+                        resultComp.createObject(null, {
+                            name: Translation.tr("Previous"),
+                            iconName: "skip_previous",
+                            iconType: LauncherSearchResult.IconType.Material,
+                            execute: () => { MprisController.previous(); }
+                        }),
+                        resultComp.createObject(null, {
+                            name: Translation.tr("Next"),
+                            iconName: "skip_next",
+                            iconType: LauncherSearchResult.IconType.Material,
+                            execute: () => { MprisController.next(); }
+                        })
+                    ]
+                }));
+            }
+            return mprisResults;
+        }
 
         ///////////// Special cases ///////////////
         if (root.query.startsWith(Config.options.search.prefix.clipboard)) {
@@ -232,12 +387,15 @@ Singleton {
                     shouldBlurImage = shouldBlurImage && (root.containsUnsafeLink(array[index - 1]) || root.containsUnsafeLink(array[index + 1]));
                 }
                 const type = `#${entry.match(/^\s*(\S+)/)?.[1] || ""}`;
+                const contentType = Cliphist.classifyEntry(entry);
                 return resultComp.createObject(null, {
+                    key: "clip:" + entry.split("\t")[0],
                     rawValue: entry,
                     name: StringUtils.cleanCliphistEntry(entry),
                     verb: "",
                     type: type,
                     pinned: isPinned,
+                    category: contentType || "clipboard",
                     execute: () => {
                         Cliphist.copy(entry);
                     },
@@ -272,56 +430,189 @@ Singleton {
                 });
             }).filter(Boolean);
         } else if (root.query.startsWith(Config.options.search.prefix.emojis)) {
-            // Clipboard
             const searchString = StringUtils.cleanPrefix(root.query, Config.options.search.prefix.emojis);
             return Emojis.fuzzyQuery(searchString).map(entry => {
                 const emoji = entry.match(/^\s*(\S+)/)?.[1] || "";
+                const emojiName = entry.replace(/^\s*\S+\s+/, "");
                 return resultComp.createObject(null, {
+                    key: "emoji:" + emoji,
                     rawValue: entry,
-                    name: entry.replace(/^\s*\S+\s+/, ""),
+                    name: emojiName,
                     iconName: emoji,
                     iconType: LauncherSearchResult.IconType.Text,
                     verb: Translation.tr("Copy"),
                     type: Translation.tr("Emoji"),
                     execute: () => {
-                        Quickshell.clipboardText = entry.match(/^\s*(\S+)/)?.[1];
-                    }
+                        Quickshell.clipboardText = emoji;
+                    },
+                    actions: [
+                        resultComp.createObject(null, {
+                            name: Translation.tr("Copy emoji"),
+                            iconName: "content_copy",
+                            iconType: LauncherSearchResult.IconType.Material,
+                            execute: () => { Quickshell.clipboardText = emoji; }
+                        }),
+                        resultComp.createObject(null, {
+                            name: Translation.tr("Copy name"),
+                            iconName: "label",
+                            iconType: LauncherSearchResult.IconType.Material,
+                            execute: () => { Quickshell.clipboardText = emojiName; }
+                        })
+                    ]
+                });
+            }).filter(Boolean);
+        } else if (root.query.startsWith(Config.options.search.prefix.windowSearch)) {
+            const searchString = root.query.slice(Config.options.search.prefix.windowSearch.length);
+            const windows = getWindowResults(searchString);
+            return windows.map(w => {
+                return resultComp.createObject(null, {
+                    key: "win:" + (w.address || w.title || w.class),
+                    name: w.title || w.class || "Unknown",
+                    type: Translation.tr("Window"),
+                    verb: Translation.tr("Focus"),
+                    iconName: AppSearch.guessIcon(w.class || ""),
+                    iconType: LauncherSearchResult.IconType.System,
+                    comment: `${w.class} — Workspace ${w.workspace?.id ?? "?"}`,
+                    execute: () => {
+                        Hyprland.dispatch(`focuswindow address:${w.address}`);
+                    },
+                    actions: [
+                        resultComp.createObject(null, {
+                            name: Translation.tr("Close"),
+                            iconName: "close",
+                            iconType: LauncherSearchResult.IconType.Material,
+                            execute: () => { Hyprland.dispatch(`closewindow address:${w.address}`); }
+                        }),
+                        resultComp.createObject(null, {
+                            name: Translation.tr("Move here"),
+                            iconName: "move_item",
+                            iconType: LauncherSearchResult.IconType.Material,
+                            execute: () => { Hyprland.dispatch(`movetoworkspacesilent e+0,address:${w.address}`); }
+                        }),
+                        resultComp.createObject(null, {
+                            name: Translation.tr("Copy title"),
+                            iconName: "content_copy",
+                            iconType: LauncherSearchResult.IconType.Material,
+                            execute: () => { Quickshell.clipboardText = w.title || w.class || ""; }
+                        })
+                    ]
+                });
+            }).filter(Boolean);
+        } else if (root.query.startsWith(Config.options.search.prefix.fileBrowser)) {
+            // File browser / directory navigation
+            // Process call is debounced via onQueryChanged, results are in fileBrowserResults
+            const rawPath = root.query.slice(Config.options.search.prefix.fileBrowser.length);
+            const homePath = FileUtils.trimFileProtocol(Directories.home);
+            const expandedPath = rawPath.startsWith("/") ? rawPath : (homePath + "/" + rawPath);
+            
+            // Find the directory part and the filter part
+            const lastSlash = expandedPath.lastIndexOf("/");
+            const dirPath = lastSlash >= 0 ? expandedPath.slice(0, lastSlash + 1) : expandedPath;
+            const filter = lastSlash >= 0 ? expandedPath.slice(lastSlash + 1).toLowerCase() : "";
+            
+            const filtered = root.fileBrowserResults.filter(entry => {
+                if (filter === "") return true;
+                return entry.toLowerCase().includes(filter);
+            });
+
+            return filtered.map(entry => {
+                const isDir = entry.endsWith("/");
+                const fullPath = dirPath + entry;
+                const isImage = !isDir && Images.isValidImageByName(fullPath);
+                const fileIcon = isDir ? "folder" : (isImage ? "image" : "description");
+                return resultComp.createObject(null, {
+                    key: "file:" + fullPath,
+                    name: isImage ? fullPath : entry,
+                    type: isDir ? Translation.tr("Directory") : Translation.tr("File"),
+                    verb: isDir ? Translation.tr("Browse") : Translation.tr("Open"),
+                    iconName: fileIcon,
+                    iconType: LauncherSearchResult.IconType.Material,
+                    comment: fullPath,
+                    execute: () => {
+                        if (isDir) {
+                            const newQuery = Config.options.search.prefix.fileBrowser + fullPath.replace(homePath, "");
+                            root.query = newQuery;
+                        } else {
+                            Quickshell.execDetached(["xdg-open", fullPath]);
+                        }
+                    },
+                    actions: [
+                        resultComp.createObject(null, {
+                            name: Translation.tr("Copy path"),
+                            iconName: "content_copy",
+                            iconType: LauncherSearchResult.IconType.Material,
+                            execute: () => {
+                                Quickshell.clipboardText = fullPath;
+                            }
+                        }),
+                        resultComp.createObject(null, {
+                            name: Translation.tr("Open in file manager"),
+                            iconName: "folder_open",
+                            iconType: LauncherSearchResult.IconType.Material,
+                            execute: () => {
+                                Quickshell.execDetached(["xdg-open", isDir ? fullPath : dirPath]);
+                            }
+                        })
+                    ]
                 });
             }).filter(Boolean);
         }
 
-        // A better way to reset file results? //
-        if (!root.query.startsWith(Config.options.search.prefix.fileSearch)) {
-            root.fileResults = [];
-        }
+
+
 
         ////////////////// Init ///////////////////
         nonAppResultsTimer.restart();
         const mathResultObject = resultComp.createObject(null, {
-            name: root.mathResult,
+            key: "math:result",
+            name: root.mathResult || Translation.tr("Evaluate math..."),
             verb: Translation.tr("Copy"),
             type: Translation.tr("Math result"),
             fontType: LauncherSearchResult.FontType.Monospace,
             iconName: 'calculate',
             iconType: LauncherSearchResult.IconType.Material,
+            isMath: Config.options.search.enableMathPreview && !!root.mathResult,
             execute: () => {
                 Quickshell.clipboardText = root.mathResult;
             }
         });
         const fileResultsObject = root.fileResults.map(entry => {
+            const isImage = Images.isValidImageByName(entry);
             return resultComp.createObject(null, {
+                key: "fsearch:" + entry,
                 type: Translation.tr("File"),
                 name: entry,
                 verb: Translation.tr("Open"),
-                iconName: 'file_open',
+                iconName: isImage ? 'image' : 'file_open',
                 iconType: LauncherSearchResult.IconType.Material,
                 execute: () => {
                     Quickshell.execDetached(["xdg-open", entry]);
-                }
+                },
+                actions: [
+                    resultComp.createObject(null, {
+                        name: Translation.tr("Copy path"),
+                        iconName: "content_copy",
+                        iconType: LauncherSearchResult.IconType.Material,
+                        execute: () => { Quickshell.clipboardText = entry; }
+                    }),
+                    resultComp.createObject(null, {
+                        name: Translation.tr("Open folder"),
+                        iconName: "folder_open",
+                        iconType: LauncherSearchResult.IconType.Material,
+                        execute: () => {
+                            const dir = entry.substring(0, entry.lastIndexOf("/") + 1);
+                            Quickshell.execDetached(["xdg-open", dir]);
+                        }
+                    })
+                ]
             });
         })
+
+        // MPRIS handled above (empty query case)
+
         const appResultObjects = AppSearch.fuzzyQuery(StringUtils.cleanPrefix(root.query, Config.options.search.prefix.app)).map(entry => {
             return resultComp.createObject(null, {
+                key: "app:" + entry.id,
                 type: Translation.tr("App"),
                 id: entry.id,
                 name: entry.name,
@@ -358,6 +649,7 @@ Singleton {
             });
         });
         const commandResultObject = resultComp.createObject(null, {
+            key: "cmd:shell",
             name: StringUtils.cleanPrefix(root.query, Config.options.search.prefix.shellCommand).replace("file://", ""),
             verb: Translation.tr("Run"),
             type: Translation.tr("Command"),
@@ -374,6 +666,7 @@ Singleton {
             }
         });
         const webSearchResultObject = resultComp.createObject(null, {
+            key: "web:search",
             name: StringUtils.cleanPrefix(root.query, Config.options.search.prefix.webSearch),
             verb: Translation.tr("Search"),
             type: Translation.tr("Web search"),
@@ -392,6 +685,7 @@ Singleton {
             const actionString = `${Config.options.search.prefix.action}${action.action}`;
             if (actionString.startsWith(root.query) || root.query.startsWith(actionString)) {
                 return resultComp.createObject(null, {
+                    key: "action:" + action.action,
                     name: root.query.startsWith(actionString) ? root.query : actionString,
                     verb: Translation.tr("Run"),
                     type: Translation.tr("Action"),
@@ -405,13 +699,129 @@ Singleton {
             return null;
         }).filter(Boolean);
 
+        // Shell snippet results
+        const snippetActions = getShellSnippetActions();
+        const shellSnippetObjects = snippetActions.map(snippet => {
+            const snippetString = `${Config.options.search.prefix.action}${snippet.action}`;
+            if (snippetString.startsWith(root.query) || root.query.startsWith(snippetString)) {
+                return resultComp.createObject(null, {
+                    key: "snippet:" + snippet.action,
+                    name: snippet.name,
+                    verb: Translation.tr("Run"),
+                    type: Translation.tr("Script"),
+                    iconName: 'code',
+                    iconType: LauncherSearchResult.IconType.Material,
+                    comment: snippet.command,
+                    execute: () => {
+                        snippet.execute(root.query.split(" ").slice(1).join(" "));
+                    }
+                });
+            }
+            return null;
+        }).filter(Boolean);
+
         //////// Prioritized by prefix /////////
         let result = [];
-        const startsWithNumber = /^\d/.test(root.query);
-        const startsWithMathPrefix = root.query.startsWith(Config.options.search.prefix.math);
+
+        // App/Folder/Command Aliases
+        const aliases = Config.options?.search?.aliases ?? [];
+        const aliasObjects = aliases.map(entry => {
+            if (entry.alias && entry.alias.toLowerCase() === root.query.toLowerCase()) {
+                if (entry.type === "app") {
+                    const app = DesktopEntries.byId(entry.target);
+                    if (app) {
+                        return resultComp.createObject(null, {
+                            key: "alias:" + entry.alias,
+                            name: app.name,
+                            iconName: app.icon,
+                            iconType: LauncherSearchResult.IconType.System,
+                            verb: Translation.tr("Open"),
+                            type: Translation.tr("App Alias"),
+                            execute: () => {
+                                AppUsage.recordLaunch(app.id);
+                                if (!app.runInTerminal) app.execute();
+                                else Quickshell.execDetached(["bash", '-c', `${Config.options.apps.terminal} -e '${StringUtils.shellSingleQuoteEscape(app.command.join(' '))}'`]);
+                            }
+                        });
+                    }
+                } else if (entry.type === "folder") {
+                    return resultComp.createObject(null, {
+                        key: "alias:" + entry.alias,
+                        name: entry.target,
+                        iconName: "folder",
+                        iconType: LauncherSearchResult.IconType.Material,
+                        verb: Translation.tr("Browse"),
+                        type: Translation.tr("Folder Alias"),
+                        execute: () => {
+                            root.query = Config.options.search.prefix.fileBrowser + entry.target;
+                        }
+                    });
+                } else if (entry.type === "command") {
+                    return resultComp.createObject(null, {
+                        key: "alias:" + entry.alias,
+                        name: entry.target,
+                        iconName: "terminal",
+                        iconType: LauncherSearchResult.IconType.Material,
+                        verb: Translation.tr("Run"),
+                        type: Translation.tr("Command Alias"),
+                        execute: () => {
+                            Quickshell.execDetached(["bash", "-c", entry.target]);
+                        }
+                    });
+                }
+            }
+            return null;
+        }).filter(Boolean);
+        result = result.concat(aliasObjects);
+
+        const isMath = root.isMathQuery(root.query);
         const startsWithShellCommandPrefix = root.query.startsWith(Config.options.search.prefix.shellCommand);
         const startsWithWebSearchPrefix = root.query.startsWith(Config.options.search.prefix.webSearch);
-        if (startsWithNumber || startsWithMathPrefix) {
+
+        // System Controls matches
+        const systemControlResults = [];
+        let queryClean = root.query.toLowerCase().trim();
+        const hasColonPrefix = queryClean.startsWith(":");
+        if (hasColonPrefix) {
+            queryClean = queryClean.slice(1);
+        }
+
+        if (Config.options.search.enableSystemControls && (hasColonPrefix || queryClean.length >= 2)) {
+            const sysCommands = [
+                { cmd: "lock", label: Translation.tr("Lock Screen"), execute: () => Quickshell.execDetached(["hyprlock"]), icon: "lock", desc: Translation.tr("Lock the current session") },
+                { cmd: "poweroff", label: Translation.tr("Shutdown PC"), execute: () => Quickshell.execDetached(["systemctl", "poweroff"]), icon: "power_settings_new", desc: Translation.tr("Power off the computer") },
+                { cmd: "reboot", label: Translation.tr("Reboot PC"), execute: () => Quickshell.execDetached(["systemctl", "reboot"]), icon: "restart_alt", desc: Translation.tr("Restart the computer") },
+                { cmd: "suspend", label: Translation.tr("Suspend PC"), execute: () => Quickshell.execDetached(["systemctl", "suspend"]), icon: "bedtime", desc: Translation.tr("Put the computer to sleep") },
+                { cmd: "restart", label: Translation.tr("Restart Quickshell"), execute: () => Quickshell.reload(), icon: "refresh", desc: Translation.tr("Restart Quickshell shell seamlessly") },
+            ];
+            const matches = sysCommands.filter(c => c.cmd.startsWith(queryClean));
+            for (const match of matches) {
+                const isPendingConfirm = root.confirmKey === match.cmd;
+                systemControlResults.push(resultComp.createObject(null, {
+                    key: "sys:" + match.cmd,
+                    name: isPendingConfirm ? match.label + " (" + Translation.tr("Are you sure?") + ")" : match.label,
+                    type: Translation.tr("System Control"),
+                    comment: isPendingConfirm ? Translation.tr("Press Enter again to confirm") : match.desc,
+                    verb: isPendingConfirm ? Translation.tr("Confirm") : Translation.tr("Execute"),
+                    iconName: match.icon,
+                    iconType: LauncherSearchResult.IconType.Material,
+                    execute: () => {
+                        if (root.confirmKey === match.cmd) {
+                            root.confirmKey = "";
+                            match.execute();
+                        } else {
+                            root.confirmKey = match.cmd;
+                        }
+                    }
+                }));
+            }
+        }
+
+        if (systemControlResults.length > 0) {
+            result = result.concat(systemControlResults);
+        }
+        
+        if (isMath) {
             result.push(mathResultObject);
         } else if (startsWithShellCommandPrefix) {
             result.push(commandResultObject);
@@ -428,17 +838,89 @@ Singleton {
         ////////// Launcher actions ////////////
         result = result.concat(launcherActionObjects);
 
+        ////////// Shell snippets //////////////
+        result = result.concat(shellSnippetObjects);
+
+        ////////// Module shortcuts ////////////
+        // Typing module names shows a shortcut to switch to that mode
+        const moduleShortcuts = [
+            { names: ["clipboard", "clip", "paste", "copiar"], prefix: Config.options.search.prefix.clipboard, label: Translation.tr("Clipboard"), icon: "content_paste" },
+            { names: ["emoji", "emojis", "emoticon"], prefix: Config.options.search.prefix.emojis, label: Translation.tr("Emojis"), icon: "mood" },
+            { names: ["window", "windows", "janela"], prefix: Config.options.search.prefix.windowSearch, label: Translation.tr("Window Search"), icon: "select_window" },
+            { names: ["file", "files", "arquivo", "browse"], prefix: Config.options.search.prefix.fileBrowser, label: Translation.tr("File Browser"), icon: "folder_open" },
+            { names: ["math", "calc", "calculator", "calcular"], prefix: Config.options.search.prefix.math, label: Translation.tr("Calculator"), icon: "calculate" },
+            { names: ["command", "commands", "terminal", "shell"], prefix: Config.options.search.prefix.shellCommand, label: Translation.tr("Shell Command"), icon: "terminal" },
+        ];
+
+        const queryLower = root.query.toLowerCase();
+        for (const mod of moduleShortcuts) {
+            if (mod.names.some(n => n.startsWith(queryLower) && queryLower.length >= 2)) {
+                result.push(resultComp.createObject(null, {
+                    key: "shortcut:" + mod.label,
+                    name: mod.label,
+                    type: Translation.tr("Shortcut"),
+                    verb: Translation.tr("Open"),
+                    iconName: mod.icon,
+                    iconType: LauncherSearchResult.IconType.Material,
+                    execute: () => {
+                        root.query = mod.prefix;
+                    }
+                }));
+            }
+        }
+
         /// Math result, command, web search ///
         if (Config.options.search.prefix.showDefaultActionsWithoutPrefix) {
             if (!startsWithShellCommandPrefix)
                 result.push(commandResultObject);
-            if (!startsWithNumber && !startsWithMathPrefix)
+            if (!isMath)
                 result.push(mathResultObject);
             if (!startsWithWebSearchPrefix)
                 result.push(webSearchResultObject);
         }
 
+        // Filter out duplicate original apps/folders/commands if an alias is shown
+        const activeAliases = (Config.options?.search?.aliases ?? []).filter(entry => entry.alias && entry.alias.toLowerCase() === root.query.toLowerCase());
+        if (activeAliases.length > 0) {
+            result = result.filter(item => {
+                if (!item || !item.key) return false;
+                for (const alias of activeAliases) {
+                    if (alias.type === "app" && item.key === "app:" + alias.target) {
+                        return false;
+                    }
+                    if (alias.type === "folder" && item.key.startsWith("file:")) {
+                        const filePath = item.key.slice(5);
+                        const targetNormalized = alias.target.startsWith("/") ? alias.target : 
+                                                 alias.target.startsWith("~") ? alias.target.replace("~", Directories.home) :
+                                                 Directories.home + "/" + alias.target;
+                        const cleanFilePath = filePath.replace(/\/+$/, "");
+                        const cleanTarget = targetNormalized.replace(/\/+$/, "");
+                        if (cleanFilePath === cleanTarget) {
+                            return false;
+                        }
+                    }
+                    if (alias.type === "command" && item.key === "command:" + alias.target) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+        }
+
         return result;
+    }
+
+    Connections {
+        target: MprisController
+        function onActivePlayerChanged() {
+            root._mprisTrigger++;
+        }
+        function onIsPlayingChanged() {
+            root._mprisTrigger++;
+        }
+        function onTrackChanged() {
+            root._mprisTrigger++;
+        }
     }
 
     Component {

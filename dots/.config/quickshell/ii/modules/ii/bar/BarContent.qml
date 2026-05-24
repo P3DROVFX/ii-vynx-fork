@@ -115,14 +115,16 @@ Item { // Bar content region
         id: barBackground
         z: -10 // making sure its behind everything
         anchors {
-            fill: root.isDynamicIsland ? undefined : parent
-            centerIn: root.isDynamicIsland ? parent : undefined
-            margins: Config.options.bar.cornerStyle === 1 ? (Appearance.sizes.hyprlandGapsOut) : 0 // idk why but +1 is needed
+            top: parent.top
+            bottom: parent.bottom
+            left: root.isDynamicIsland ? undefined : parent.left
+            right: root.isDynamicIsland ? undefined : parent.right
+            horizontalCenter: root.isDynamicIsland ? parent.horizontalCenter : undefined
+            margins: Config.options.bar.cornerStyle === 1 ? (Appearance.sizes.hyprlandGapsOut) : 0
         }
 
         readonly property int islandSectionSpacing: 48 //spacing between the three modules
         width: root.isDynamicIsland ? (Math.max(islandSections.implicitWidth + 12, 200)) : parent.width
-        height: parent.height
 
         color: root.showBarBackground ? (Config.options.bar.expressiveColors ? activeTheme.barBackground : Appearance.colors.colLayer0) : "transparent"
         property real baseRadius: root.isDynamicIsland ? height / 2 : (Config.options.bar.cornerStyle === 1 || Config.options.appearance.fakeScreenRounding === 4 ? Appearance.rounding.windowRounding : 0)
@@ -240,9 +242,9 @@ Item { // Bar content region
     Item {
         id: leftStopper
         anchors {
-            top: parent.top
-            bottom: parent.bottom
-            left: parent.left
+            top: barBackground.top
+            bottom: barBackground.bottom
+            left: barBackground.left
             leftMargin: 4
         }
         width: 1
@@ -251,7 +253,11 @@ Item { // Bar content region
     RowLayout { // Combined Island section
         id: islandSections
         visible: root.isDynamicIsland
-        anchors.centerIn: parent
+        anchors {
+            top: barBackground.top
+            bottom: barBackground.bottom
+            horizontalCenter: barBackground.horizontalCenter
+        }
         spacing: barBackground.islandSectionSpacing
 
         RowLayout { // Left
@@ -309,8 +315,8 @@ Item { // Bar content region
         id: leftSection
         visible: !root.isDynamicIsland
         anchors {
-            top: parent.top
-            bottom: parent.bottom
+            top: barBackground.top
+            bottom: barBackground.bottom
             left: leftStopper.right
         }
         spacing: 4
@@ -329,9 +335,9 @@ Item { // Bar content region
         id: middleSection
         visible: !root.isDynamicIsland
         anchors {
-            top: parent.top
-            bottom: parent.bottom
-            horizontalCenter: parent.horizontalCenter
+            top: barBackground.top
+            bottom: barBackground.bottom
+            horizontalCenter: barBackground.horizontalCenter
         }
         spacing: 4
 
@@ -379,8 +385,8 @@ Item { // Bar content region
         id: rightSection
         visible: !root.isDynamicIsland
         anchors {
-            top: parent.top
-            bottom: parent.bottom
+            top: barBackground.top
+            bottom: barBackground.bottom
             right: rightStopper.left
             rightMargin: 4
         }
@@ -399,9 +405,9 @@ Item { // Bar content region
     Item {
         id: rightStopper
         anchors {
-            top: parent.top
-            bottom: parent.bottom
-            right: parent.right
+            top: barBackground.top
+            bottom: barBackground.bottom
+            right: barBackground.right
         }
         width: 1
     }

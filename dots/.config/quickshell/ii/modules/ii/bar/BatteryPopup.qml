@@ -18,7 +18,6 @@ StyledPopup {
     readonly property bool hasTimeData: {
         const timeValue = Battery.isCharging ? Battery.timeToFull : Battery.timeToEmpty;
         const power = Battery.energyRate;
-        // chargeState == 4 indica bateria totalmente carregada
         return !(Battery.chargeState === 4 || timeValue <= 0 || power <= 0.01);
     }
 

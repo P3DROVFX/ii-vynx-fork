@@ -16,7 +16,7 @@ Item {
     property bool isMaterial: true
 
     implicitWidth: vertical ? Appearance.sizes.verticalBarWidth : pill.implicitWidth
-    implicitHeight: vertical ? pill.implicitHeight : Appearance.sizes.barHeight
+    implicitHeight: vertical ? pill.implicitHeight : Appearance.sizes.baseBarHeight
     width: implicitWidth
     height: implicitHeight
 
@@ -26,7 +26,7 @@ Item {
         color: isMaterial ? Appearance.colors.colPrimaryContainer : "transparent"
         radius: Config.options.bar.barGroupStyle === 1 ? Appearance.rounding.windowRounding : Appearance.rounding.full
         implicitWidth: isMaterial && !root.vertical ? flow.implicitWidth + 10 : root.vertical ? Appearance.sizes.verticalBarWidth - 8 : flow.implicitWidth + 4
-        implicitHeight: isMaterial && root.vertical ? flow.implicitHeight + 10 : isMaterial ? Appearance.sizes.barHeight - 8 : root.vertical ? flow.implicitHeight + 4 : Appearance.sizes.barHeight
+        implicitHeight: isMaterial && root.vertical ? flow.implicitHeight + 10 : isMaterial ? Appearance.sizes.baseBarHeight - 8 : root.vertical ? flow.implicitHeight + 4 : Appearance.sizes.baseBarHeight
 
         Behavior on implicitWidth {
             NumberAnimation {

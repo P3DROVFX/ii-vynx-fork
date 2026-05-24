@@ -166,7 +166,6 @@ Singleton {
         target: (Config.options && Config.options.light && Config.options.light.night) ? Config.options.light.night : null
         function onColorTemperatureChanged() {
             if (!root.temperatureActive) return;
-            Hyprland.dispatch(`hyprctl hyprsunset temperature ${Config.options.light.night.colorTemperature}`);
             Quickshell.execDetached(["hyprctl", "hyprsunset", "temperature", `${Config.options.light.night.colorTemperature}`]);
         }
     }

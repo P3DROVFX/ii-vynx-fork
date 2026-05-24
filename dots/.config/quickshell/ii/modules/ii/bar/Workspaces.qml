@@ -193,7 +193,7 @@ Item {
     }
 
     implicitWidth: root.vertical ? Appearance.sizes.verticalBarWidth : contentLayout.implicitWidth
-    implicitHeight: root.vertical ? contentLayout.implicitHeight : Appearance.sizes.barHeight
+    implicitHeight: root.vertical ? contentLayout.implicitHeight : Appearance.sizes.baseBarHeight
 
     Behavior on implicitHeight {
         animation: Appearance.animation.elementResize.numberAnimation.createObject(this)

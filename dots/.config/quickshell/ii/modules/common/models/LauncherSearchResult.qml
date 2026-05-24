@@ -6,6 +6,7 @@ QtObject {
     enum FontType { Normal, Monospace }
 
     // General stuff
+    property string key: ""  // Stable identity key for ScriptModel tracking
     property string type: ""
     property var fontType: LauncherSearchResult.FontType.Normal
     property string name: ""

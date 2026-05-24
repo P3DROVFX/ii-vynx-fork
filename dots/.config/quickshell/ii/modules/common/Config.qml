@@ -13,7 +13,6 @@ Singleton {
     property bool ready: false
     property int readWriteDelay: 75 // milliseconds
     property bool blockWrites: false
-    property bool _ignoreFileChanges: false
 
     function setNestedValue(nestedKey, value) {
         let keys = nestedKey.split(".");
@@ -47,7 +46,7 @@ Singleton {
 
     Timer {
         id: fileReloadTimer
-        interval: 500
+        interval: root.readWriteDelay
         repeat: false
         onTriggered: {
             configFileView.reload();
@@ -56,20 +55,11 @@ Singleton {
 
     Timer {
         id: fileWriteTimer
-        interval: 500
+        interval: root.readWriteDelay
         repeat: false
         onTriggered: {
-            root._ignoreFileChanges = true;
-            fileChangeCooldown.restart();
             configFileView.writeAdapter();
         }
-    }
-
-    Timer {
-        id: fileChangeCooldown
-        interval: 300
-        repeat: false
-        onTriggered: root._ignoreFileChanges = false
     }
 
     FileView {
@@ -78,7 +68,7 @@ Singleton {
         watchChanges: true
         blockWrites: root.blockWrites
         onFileChanged: {
-            if (!root.ready || root._ignoreFileChanges)
+            if (!root.ready)
                 return;
             fileReloadTimer.restart();
         }
@@ -810,12 +800,15 @@ Singleton {
             }
 
             property JsonObject search: JsonObject {
+                property bool enableSystemControls: true
+                property bool enableMathPreview: true
                 property int nonAppResultDelay: 30 // This prevents lagging when typing
                 property string engineBaseUrl: "https://www.google.com/search?q="
                 property list<string> excludedSites: ["quora.com", "facebook.com"]
                 property bool sloppy: false // DEPRECATED: use levenshtein instead
                 property bool levenshtein: false // Use Levenshtein distance (typo-tolerant) instead of fuzzy matching
                 property bool frecency: false // Rank results by app launch frequency
+                property list<var> aliases: []
                 property string fileSearchDirectory: "/home"
                 property bool blurFileSearchResultPreviews: false
                 property JsonObject prefix: JsonObject {
@@ -828,10 +821,31 @@ Singleton {
                     property string math: "="
                     property string shellCommand: "$"
                     property string webSearch: "?"
+                    property string windowSearch: "#"
+                    property string fileBrowser: "~"
                 }
                 property JsonObject imageSearch: JsonObject {
                     property string imageSearchEngineBaseUrl: "https://lens.google.com/uploadbyurl?url="
                     property bool useCircleSelection: false
+                }
+                property JsonObject clipboard: JsonObject {
+                    property int panelWidth: 860
+                    property real listColumnRatio: 0.40
+                    property bool showMetadata: true
+                    property int imageHeight: 200
+                    property int previewFontSize: 12
+                    property bool enableSloppySearch: false
+                    property JsonObject detectors: JsonObject {
+                        property bool hexColor: true
+                        property bool url: true
+                        property bool email: true
+                        property bool phone: true
+                        property bool json: true
+                        property bool filePath: true
+                        property bool markdown: true
+                        property bool number: true
+                        property bool multiline: true
+                    }
                 }
             }
 

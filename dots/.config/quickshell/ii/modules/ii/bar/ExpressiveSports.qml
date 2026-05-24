@@ -19,7 +19,7 @@ MouseArea {
     visible: internalVisible || opacity > 0
     
     implicitWidth: shouldBeVisible ? (vertical ? Appearance.sizes.verticalBarWidth : layout.implicitWidth + 8) : 0
-    implicitHeight: shouldBeVisible ? (vertical ? layoutVert.implicitHeight + 8 : Appearance.sizes.barHeight) : 0
+    implicitHeight: shouldBeVisible ? (vertical ? layoutVert.implicitHeight + 8 : Appearance.sizes.baseBarHeight) : 0
     hoverEnabled: true
 
     // Animation offsets
@@ -140,7 +140,7 @@ MouseArea {
             Layout.alignment: Qt.AlignVCenter
             shapeString: "Cookie7Sided"
             color: Appearance.colors.colSecondaryContainer
-            implicitSize: Appearance.sizes.barHeight - 8
+            implicitSize: Appearance.sizes.baseBarHeight - 8
             StyledImage {
                 anchors.centerIn: parent
                 width: parent.implicitSize - 14
@@ -152,7 +152,7 @@ MouseArea {
         Rectangle {
             id: statusPill
             Layout.alignment: Qt.AlignVCenter
-            Layout.preferredHeight: Appearance.sizes.barHeight - 14
+            Layout.preferredHeight: Appearance.sizes.baseBarHeight - 14
             Layout.preferredWidth: Math.max(statusText.implicitWidth + 16, 30)
             radius: Appearance.rounding.full
             color: Appearance.colors.colPrimary
@@ -173,7 +173,7 @@ MouseArea {
             Layout.alignment: Qt.AlignVCenter
             shapeString: "Cookie7Sided"
             color: Appearance.colors.colSecondaryContainer
-            implicitSize: Appearance.sizes.barHeight - 8
+            implicitSize: Appearance.sizes.baseBarHeight - 8
             StyledImage {
                 anchors.centerIn: parent
                 width: parent.implicitSize - 14

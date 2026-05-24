@@ -8,8 +8,8 @@ Item {
     id: root
     property bool vertical: false
 
-    implicitWidth: vertical ? Appearance.sizes.verticalBarWidth - 8 : Appearance.sizes.barHeight - 8
-    implicitHeight: vertical ? Appearance.sizes.verticalBarWidth - 8 : Appearance.sizes.barHeight - 8
+    implicitWidth: vertical ? Appearance.sizes.verticalBarWidth - 8 : Appearance.sizes.baseBarHeight - 8
+    implicitHeight: vertical ? Appearance.sizes.verticalBarWidth - 8 : Appearance.sizes.baseBarHeight - 8
 
     RippleButton {
         anchors.fill: parent

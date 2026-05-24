@@ -16,7 +16,7 @@ Item {
     property bool isMaterial: true // Forced expressive
 
     implicitWidth: vertical ? Appearance.sizes.verticalBarWidth : pill.implicitWidth
-    implicitHeight: vertical ? flow.implicitHeight + 6 : Appearance.sizes.barHeight
+    implicitHeight: vertical ? flow.implicitHeight + 6 : Appearance.sizes.baseBarHeight
 
     MouseArea {
         id: mouseArea
@@ -35,7 +35,7 @@ Item {
         color: GlobalStates.sidebarRightOpen ? Appearance.colors.colPrimaryActive : (mouseArea.containsMouse ? Appearance.colors.colPrimaryHover : Appearance.colors.colPrimary)
         radius: Config.options.bar.barGroupStyle === 1 ? Appearance.rounding.windowRounding : Appearance.rounding.full
         implicitWidth: root.vertical ? Appearance.sizes.verticalBarWidth - 8 : flow.implicitWidth + 16
-        implicitHeight: root.vertical ? flow.implicitHeight + 16 : Appearance.sizes.barHeight - 8
+        implicitHeight: root.vertical ? flow.implicitHeight + 16 : Appearance.sizes.baseBarHeight - 8
 
         Behavior on color {
             ColorAnimation { duration: 150 }

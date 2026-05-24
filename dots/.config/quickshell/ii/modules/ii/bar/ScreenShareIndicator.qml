@@ -12,7 +12,7 @@ MouseArea {
     property bool vertical: false
 
     implicitWidth: 40
-    implicitHeight: Appearance.sizes.barHeight
+    implicitHeight: Appearance.sizes.baseBarHeight
 
     property bool activelyScreenSharing: false
     

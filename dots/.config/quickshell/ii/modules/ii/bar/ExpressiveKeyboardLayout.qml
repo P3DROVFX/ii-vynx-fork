@@ -15,7 +15,7 @@ MouseArea {
     visible: HyprlandXkb.layoutCodes.length >= 1
 
     implicitWidth: vertical ? Appearance.sizes.verticalBarWidth - 8 : (rowLoader.item?.implicitWidth ?? 0) + 28
-    implicitHeight: vertical ? (colLoader.item?.implicitHeight ?? 0) + 12 : Appearance.sizes.barHeight - 8
+    implicitHeight: vertical ? (colLoader.item?.implicitHeight ?? 0) + 12 : Appearance.sizes.baseBarHeight - 8
     
     hoverEnabled: !Config.options.bar.tooltips.clickToShow
 

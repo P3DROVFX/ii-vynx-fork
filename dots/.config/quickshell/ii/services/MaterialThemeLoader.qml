@@ -21,7 +21,10 @@ Singleton {
 
     function applyColors(fileContent) {
         try {
-            if (!fileContent || fileContent.trim() === "") return;
+            if (!fileContent || fileContent.trim() === "") {
+                console.log("[MaterialThemeLoader] applyColors: empty content, skipping")
+                return;
+            }
             const json = JSON.parse(fileContent)
             for (const key in json) {
                 if (json.hasOwnProperty(key)) {
@@ -33,25 +36,46 @@ Singleton {
             }
             
             Appearance.m3colors.darkmode = (Appearance.m3colors.m3background.hslLightness < 0.5)
+            console.log("[MaterialThemeLoader] applyColors: darkmode=", Appearance.m3colors.darkmode, "bg=", Appearance.m3colors.m3background)
         } catch(e) {
             console.log("[MaterialThemeLoader] Error parsing colors.json:", e)
         }
     }
 
-    Timer {
-        id: resetFilePathTimer
-        interval: 200
-        repeat: false
-        running: false
-        onTriggered: {
+    property int retryCount: 0
+
+    function resetFilePathNextTime() {
+        resetFilePathNextWallpaperChange.enabled = true
+    }
+
+    Connections {
+        id: resetFilePathNextWallpaperChange
+        enabled: false
+        target: Config.options.background
+        function onWallpaperPathChanged() {
             root.filePath = ""
             root.filePath = Directories.generatedMaterialThemePath
-            themeFileView.reload()
+            resetFilePathNextWallpaperChange.enabled = false
         }
     }
 
-    function resetFilePathNextTime() {
-        resetFilePathTimer.start()
+    Timer {
+        id: retryTimer
+        interval: 150
+        repeat: false
+        running: false
+        onTriggered: {
+            if (root.retryCount < 5) {
+                root.retryCount++
+                console.log("[MaterialThemeLoader] Retrying file reload, attempt:", root.retryCount)
+                themeFileView.reload()
+            } else {
+                console.log("[MaterialThemeLoader] Max retries reached, resetting path to re-establish watch")
+                root.filePath = ""
+                root.filePath = Directories.generatedMaterialThemePath
+                root.retryCount = 0
+            }
+        }
     }
 
     Timer {
@@ -69,14 +93,23 @@ Singleton {
         path: Qt.resolvedUrl(root.filePath)
         watchChanges: true
         onFileChanged: {
+            console.log("[MaterialThemeLoader] onFileChanged triggered, reloading...")
             this.reload()
             delayedFileRead.start()
         }
         onLoadedChanged: {
-            const fileContent = themeFileView.text()
-            root.applyColors(fileContent)
+            console.log("[MaterialThemeLoader] onLoadedChanged, loaded=", themeFileView.loaded)
+            if (themeFileView.loaded) {
+                root.retryCount = 0
+                retryTimer.stop()
+                const fileContent = themeFileView.text()
+                root.applyColors(fileContent)
+            }
         }
-        onLoadFailed: root.resetFilePathNextTime();
+        onLoadFailed: {
+            console.log("[MaterialThemeLoader] onLoadFailed, starting retry timer")
+            retryTimer.start()
+        }
     }
 
     function toggleLightDark() {
@@ -98,6 +131,10 @@ Singleton {
 
         function toggleLightDark(): void {
             root.toggleLightDark();
+        }
+
+        function reapplyTheme(): void {
+            root.reapplyTheme();
         }
     }
 }

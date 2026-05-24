@@ -7,6 +7,7 @@ import Quickshell
 /**
  * - Eases fuzzy searching for applications by name
  * - Guesses icon name for window class name
+ * - Supports frecency ranking and alias resolution
  */
 Singleton {
     id: root
@@ -61,18 +62,24 @@ Singleton {
         entry: a
     }))
 
+
+
     /**
      * Frecency search: combines fuzzy matching with app launch frequency
      */
     function frecencyQuery(search: string): var {
         if (search === "") {
-            // When empty, show most frequently used apps
-            return list.map(obj => ({
+            // When empty, show all apps sorted by frecency then alphabetical
+            const scored = list.map(obj => ({
                 entry: obj,
                 score: AppUsage.getScore(obj.id)
-            })).filter(item => item.score > 0)
-              .sort((a, b) => b.score - a.score)
-              .map(item => item.entry);
+            }));
+            // Split: apps with score > 0 sorted by score desc, then rest alphabetically
+            const used = scored.filter(item => item.score > 0)
+                .sort((a, b) => b.score - a.score);
+            const unused = scored.filter(item => item.score === 0)
+                .sort((a, b) => a.entry.name.localeCompare(b.entry.name));
+            return used.concat(unused).map(item => item.entry);
         }
 
         // Use Fuzzy.go to get matches with scores
@@ -83,7 +90,7 @@ Singleton {
 
         if (fuzzyResults.length === 0) return [];
 
-        // Find max score for normalization (Fuzzy.go scores are >= 0 usually, but let's be safe)
+        // Find max score for normalization
         let maxFuzzy = 0;
         for (let i = 0; i < fuzzyResults.length; i++) {
             if (fuzzyResults[i].score > maxFuzzy) maxFuzzy = fuzzyResults[i].score;
@@ -92,19 +99,25 @@ Singleton {
         const results = fuzzyResults.map(r => {
             const entry = r.obj.entry;
             const fuzzyScore = r.score;
-            // Normalize fuzzy score to 0-1 range
             const normalizedFuzzy = maxFuzzy > 0 ? fuzzyScore / maxFuzzy : 1;
             const usageScore = AppUsage.getScore(entry.id);
+            // Normalize usage score (log scale to prevent single high-freq app dominating)
+            const normalizedUsage = usageScore > 0 ? Math.min(1, Math.log(usageScore + 1) / Math.log(100)) : 0;
+            
+            // Boost score if the app name starts with the search string
+            const startsWithQuery = entry.name.toLowerCase().startsWith(search.toLowerCase());
+            const prefixBonus = startsWithQuery ? 1.0 : 0.0;
             
             return {
                 entry: entry,
-                // Combine scores: 60% fuzzy match quality, 40% usage/recency
-                combinedScore: normalizedFuzzy * 0.6 + usageScore * 0.4
+                combinedScore: normalizedFuzzy * 0.6 + normalizedUsage * 0.4 + prefixBonus,
+                isAlias: false
             };
-        }).sort((a, b) => b.combinedScore - a.combinedScore)
-          .map(item => item.entry);
+        });
 
-        return results;
+        return results
+            .sort((a, b) => b.combinedScore - a.combinedScore)
+            .map(item => item.entry);
     }
 
     function fuzzyQuery(search) { // Idk why list<DesktopEntry> doesn't work

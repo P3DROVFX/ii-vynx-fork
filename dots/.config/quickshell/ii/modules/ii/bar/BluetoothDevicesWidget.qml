@@ -28,7 +28,7 @@ MouseArea {
     }
 
     implicitWidth: chip.implicitWidth
-    implicitHeight: Appearance.sizes.barHeight
+    implicitHeight: Appearance.sizes.baseBarHeight
 
     
 
@@ -55,7 +55,7 @@ MouseArea {
         id: chip
         anchors.centerIn: parent
         implicitWidth: layout.implicitWidth + 28
-        implicitHeight: Appearance.sizes.barHeight - 6
+        implicitHeight: Appearance.sizes.baseBarHeight - 6
 
         RowLayout {
             id: layout

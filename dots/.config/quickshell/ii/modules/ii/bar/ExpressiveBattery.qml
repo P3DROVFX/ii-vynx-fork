@@ -11,7 +11,7 @@ MouseArea {
     property bool isMaterial: true // Forced expressive
 
     implicitWidth: vertical ? Appearance.sizes.verticalBarWidth : pill.implicitWidth
-    implicitHeight: vertical ? (batteryIcon.implicitHeight > 0 ? batteryIcon.implicitHeight : 0) + 8 : Appearance.sizes.barHeight
+    implicitHeight: vertical ? (batteryIcon.implicitHeight > 0 ? batteryIcon.implicitHeight : 0) + 8 : Appearance.sizes.baseBarHeight
     width: implicitWidth
     height: implicitHeight
     visible: Battery.available
@@ -23,7 +23,7 @@ MouseArea {
         color: Appearance.colors.colSecondaryContainer
         radius: Config.options.bar.barGroupStyle === 1 ? Appearance.rounding.windowRounding : Appearance.rounding.full
         implicitWidth: vertical ? Appearance.sizes.verticalBarWidth - 8 : batteryIcon.implicitWidth
-        implicitHeight: vertical ? batteryIcon.implicitHeight : Appearance.sizes.barHeight - 8
+        implicitHeight: vertical ? batteryIcon.implicitHeight : Appearance.sizes.baseBarHeight - 8
 
         Loader {
             id: batteryIcon

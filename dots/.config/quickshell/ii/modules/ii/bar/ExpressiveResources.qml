@@ -10,7 +10,7 @@ MouseArea {
     property bool isMaterial: true // Forced expressive
 
     implicitWidth: vertical ? Appearance.sizes.verticalBarWidth - 8 : (rowLoader.item?.implicitWidth ?? 0) + 10
-    implicitHeight: vertical ? (colLoader.item?.implicitHeight ?? 0) + 12 : Appearance.sizes.barHeight - 8
+    implicitHeight: vertical ? (colLoader.item?.implicitHeight ?? 0) + 12 : Appearance.sizes.baseBarHeight - 8
     hoverEnabled: !Config.options.bar.tooltips.clickToShow
 
     Behavior on implicitHeight {

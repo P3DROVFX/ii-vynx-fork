@@ -27,6 +27,7 @@ import qs.modules.ii.wrappedFrame
 import qs.modules.ii.colorPickerPopup
 import qs.modules.ii.videoEditor
 import qs.modules.ii.localSendPopup
+import qs.modules.ii.scratchpadOverlay
 
 Scope {
     property bool barExtraCondition: true
@@ -127,5 +128,8 @@ Scope {
     }
     PanelLoader {
         component: VideoEditor {}
+    }
+    PanelLoader {
+        component: ScratchpadOverlay {}
     }
 }

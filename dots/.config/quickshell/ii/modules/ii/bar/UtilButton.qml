@@ -13,7 +13,7 @@ Item {
     property bool isActive: false
     property bool forceHovered: false
 
-    readonly property real baseSize: (vertical ? Appearance.sizes.verticalBarWidth : Appearance.sizes.barHeight) - 14
+    readonly property real baseSize: (vertical ? Appearance.sizes.verticalBarWidth : Appearance.sizes.baseBarHeight) - 14
     implicitWidth: vertical ? baseSize : (hovered ? baseSize + 28 : baseSize)
     implicitHeight: vertical ? (hovered ? baseSize + 28 : baseSize) : baseSize
 

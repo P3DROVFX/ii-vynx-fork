@@ -39,7 +39,11 @@ Rectangle {
         return match ? parseInt(match[2]) : 0;
     }
     property real scale: {
-        return Math.min(root.maxWidth / imageWidth, root.maxHeight / imageHeight, 1);
+        if (imageWidth <= 0 || imageHeight <= 0)
+            return 1;
+        const w = root.maxWidth > 0 ? root.maxWidth : 300;
+        const h = root.maxHeight > 0 ? root.maxHeight : 200;
+        return Math.min(w / imageWidth, h / imageHeight, 1);
     }
 
     color: Appearance.colors.colLayer1

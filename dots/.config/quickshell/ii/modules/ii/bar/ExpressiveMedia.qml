@@ -70,7 +70,7 @@ Item {
 
     Layout.fillHeight: true
     implicitWidth: vertical ? Appearance.sizes.verticalBarWidth : (useFixedSize ? customSize : (isMaterial ? materialRow.implicitWidth : Math.min(rowLayout.implicitWidth + 8, 280)))
-    implicitHeight: vertical ? (isMaterial ? materialCol.implicitHeight : mediaCircProg.implicitHeight + 6) : Appearance.sizes.barHeight
+    implicitHeight: vertical ? (isMaterial ? materialCol.implicitHeight : mediaCircProg.implicitHeight + 6) : Appearance.sizes.baseBarHeight
 
     Behavior on implicitWidth {
         animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(root)
@@ -288,7 +288,7 @@ Item {
             id: card
             color: Appearance.colors.colSecondaryContainer
             radius: Config.options.bar.barGroupStyle === 1 ? Appearance.rounding.windowRounding : Appearance.rounding.full
-            implicitHeight: Appearance.sizes.barHeight - 8
+            implicitHeight: Appearance.sizes.baseBarHeight - 8
             height: implicitHeight
             implicitWidth: innerRow.implicitWidth + 8
             width: parent.width

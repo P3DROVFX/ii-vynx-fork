@@ -16,7 +16,7 @@ Item {
     property bool showStopwatch: Config.options.bar.timers.showStopwatch
 
     implicitWidth: rowLayout.implicitWidth + rowLayout.spacing * 5
-    implicitHeight: Appearance.sizes.barHeight
+    implicitHeight: Appearance.sizes.baseBarHeight
 
     property bool compVisible: ((hasStop || sRunning) && root.showStopwatch) || ((pRunning || hasPomo) && root.showPomodoro)
 

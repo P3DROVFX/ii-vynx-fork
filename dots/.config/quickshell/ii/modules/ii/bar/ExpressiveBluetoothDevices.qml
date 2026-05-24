@@ -17,7 +17,7 @@ MouseArea {
     readonly property bool hasDevices: activeDevices.length > 0
     implicitWidth: vertical ? Appearance.sizes.verticalBarWidth : layout.implicitWidth + 8
 
-    implicitHeight: vertical ? layoutVert.implicitHeight + 8 : Appearance.sizes.barHeight
+    implicitHeight: vertical ? layoutVert.implicitHeight + 8 : Appearance.sizes.baseBarHeight
     width: implicitWidth
     height: implicitHeight
     visible: hasDevices
@@ -52,7 +52,7 @@ MouseArea {
         MaterialShape {
             shapeString: "Cookie7Sided"
             color: Appearance.colors.colPrimary
-            implicitSize: Appearance.sizes.barHeight - 8
+            implicitSize: Appearance.sizes.baseBarHeight - 8
             MaterialSymbol {
                 anchors.centerIn: parent
                 iconSize: Appearance.font.pixelSize.normal
@@ -65,7 +65,7 @@ MouseArea {
             color: Appearance.colors.colSecondaryContainer
             radius: Config.options.bar.barGroupStyle === 1 ? Appearance.rounding.windowRounding : Appearance.rounding.full
             implicitWidth: content.implicitWidth + 24
-            implicitHeight: Appearance.sizes.barHeight - 8
+            implicitHeight: Appearance.sizes.baseBarHeight - 8
             
             RowLayout {
                 id: content

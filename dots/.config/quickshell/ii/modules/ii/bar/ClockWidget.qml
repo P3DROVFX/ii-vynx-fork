@@ -8,7 +8,7 @@ Item {
     id: root
     property bool showDate: Config.options.bar.verbose
     implicitWidth: rowLayout.implicitWidth + rowLayout.spacing * 10
-    implicitHeight: Appearance.sizes.barHeight
+    implicitHeight: Appearance.sizes.baseBarHeight
     property color colText: dropArea.containsDrag ? Appearance.colors.colPrimary : rootItem.highlighted ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer1
     RowLayout {
         id: rowLayout

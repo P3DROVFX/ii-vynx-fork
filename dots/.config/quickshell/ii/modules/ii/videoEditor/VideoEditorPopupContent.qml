@@ -50,7 +50,7 @@ Item {
             margins: Appearance.sizes.elevationMargin
         }
         radius: Appearance.rounding.large
-        color: Appearance.m3colors.m3surfaceContainer
+        color: Config.options.appearance.transparency.popups ? Appearance.colors.colLayer0 : Appearance.m3colors.m3surfaceContainer
         border.width: 1
         border.color: Appearance.colors.colLayer0Border
 
