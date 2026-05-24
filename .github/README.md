@@ -179,6 +179,18 @@ It aims to provide a state-of-the-art Linux desktop experience by strictly adher
     - **Enhanced Edit Mode**: New UI for adding/deleting pages and reordering toggles with full visual feedback.
     - **Layout Sync**: Bottom widgets automatically contract when editing to maximize space.
   </details>
+- **🔍 Revamped Search Launcher (Power-User)**: This repository includes a completely revamped search launcher widget (`Super + D` or `Super + Space`) designed for power-users.
+  <details>
+    <summary><b>🔍 Search Launcher Features & Setup Guide</b></summary>
+
+    ### ✨ Features
+    - **Prefix-less Math & Unit Converter**: Real-time evaluation of mathematical expressions (including functions like `sqrt`, `sin`, `cos`) and units/currency conversions (e.g. `120 usd to eur` or `50c to f`) right inside the preview results block without needing a prefix.
+    - **Secure System Controls**: Instantly lock the screen (`lock`), suspend the PC (`suspend`), reboot (`reboot`), shutdown (`poweroff`), or restart the Quickshell shell (`restart`) directly from the search bar.
+    - **Two-Step Confirmation Safeguard**: Clicking or hitting Enter on critical system commands dynamically prompts for confirmation inside the launcher (e.g., `Reboot PC (Are you sure?)`), keeping the launcher open and requiring a second Enter/click to execute, while cancelling automatically if you type or move away.
+
+    ### 📖 Setup Guide
+    For a full setup guide, code diffs, and detailed configuration parameters, check out the [Search Upgrades & Implementation Guide](modules/ii/overview/IMPLEMENTATION_GUIDE.md).
+  </details>
 
 - **🎥 OBS Integration**: Start/stop recordings directly from the bar with real-time status.
 - **✅ TickTick Sync**: Full cloud integration for task management synced across devices.
@@ -204,6 +216,8 @@ Please refer to the **[wiki](https://github.com/vaguesyntax/ii-vynx/wiki)** for 
 
 - **[end-4](https://github.com/end-4):** Creator of illogical-impulse.
 - **[vaguesyntax](https://github.com/vaguesyntax):** Creator of ii-vynx.
+- **[pc-trade](https://github.com/pctrade):** Some design and features inspo.
+- **[so-do-i-look-like-him](https://github.com/so-do-i-look-like-him):** Instalatin bug fixes.
 - **[Quickshell](https://quickshell.org/):** Widget system.
 - **[Hyprland](https://hypr.land/):** Compositor.
 
