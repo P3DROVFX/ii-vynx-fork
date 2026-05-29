@@ -70,14 +70,7 @@ Scope {
 
             readonly property bool isVertical: dock.isVertical
             readonly property real dockThickness: isVertical ? dockRoot.sizing.dockWidth : dockRoot.sizing.dockHeight
-            
-            readonly property bool overlapsOpenSidebar: {
-                if (dock.dockEffectivePosition === "left" && GlobalStates.effectiveLeftOpen) return true;
-                if (dock.dockEffectivePosition === "right" && GlobalStates.effectiveRightOpen) return true;
-                return false;
-            }
-            
-            property bool reveal: !overlapsOpenSidebar && (dock.pinned || (Config.options?.dock.hoverToReveal && dockMouseArea.containsMouse) || (dockContent.requestDockShow) || (workspaceEmpty))
+            property bool reveal: dock.pinned || (Config.options?.dock.hoverToReveal && dockMouseArea.containsMouse) || (dockContent.requestDockShow) || (workspaceEmpty)
             property bool positionChanging: false
 
             // TODO: check for multi-monitor situations
@@ -110,7 +103,7 @@ Scope {
                 right: dock.dockEffectivePosition !== "left"
             }
 
-            exclusiveZone: (dock.pinned && reveal) ? dockThickness : 0
+            exclusiveZone: dock.pinned ? dockThickness : 0
             WlrLayershell.namespace: "quickshell:dock"
             WlrLayershell.layer: WlrLayer.Overlay
             color: "transparent"

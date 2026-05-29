@@ -248,7 +248,7 @@ Item {
                     
                     DropArea { // Workspace drop
                         anchors.fill: parent
-                        onEntered: {
+                        onEntered: (drag) => {
                             root.dragDropType = 0
                             root.draggingTargetWorkspace = wsId
                             hovering = true
@@ -416,7 +416,7 @@ Item {
 
                     DropArea { // Window drop
                         anchors.fill:  parent 
-                        onEntered: {
+                        onEntered: (drag) => {
                             parent.hovering = true
                             root.dragDropType = 1 // window
                             root.draggingTargetWindowAdress = windowData?.address
@@ -504,12 +504,12 @@ Item {
                                 
                                 
                                 if (targetWindowAdress !== "" && targetWindowAdress !== windowData?.address) {
-                                    if (root.draggingTargetWorkspace === root.draggingFromWorkspace) { // direct same workspace swap (plugin supports)
-                                        Hyprland.dispatch(`layoutmsg swapaddrdir ${targetWindowAdress} ${root.draggingDirection} ${window.windowData?.address} true`)
+                                    if (root.draggingTargetWorkspace === root.draggingFromWorkspace) { // direct same workspace swap
+                                        Hyprland.dispatch(`hl.dsp.window.swap({ target = "address:${targetWindowAdress}", window = "address:${window.windowData?.address}" })`)
                                     } else { // different workspace
                                         Hyprland.dispatch(`hl.dsp.window.move({ workspace = ${targetWorkspace}, follow = false, window = "address:${root.draggingFromWindowAddress}" })`)
                                         Qt.callLater(() => {
-                                            Hyprland.dispatch(`layoutmsg swapaddrdir ${targetWindowAdress} ${root.draggingDirection} ${window.windowData?.address} true`)
+                                            Hyprland.dispatch(`hl.dsp.window.swap({ target = "address:${targetWindowAdress}", window = "address:${window.windowData?.address}" })`)
                                         })
                                     }
                                 }

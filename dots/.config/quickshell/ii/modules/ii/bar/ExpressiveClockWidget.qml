@@ -18,7 +18,6 @@ Item {
     width: implicitWidth
     height: implicitHeight
 
-    // Vertical
     Loader {
         id: colLoader
         active: root.vertical
@@ -28,9 +27,8 @@ Item {
             id: layoutVert
             spacing: 2
             
-            // Helper properties for direct formatting
             readonly property bool is12h: root.is12h
-            readonly property string hours: Qt.formatDateTime(DateTime.clock.date, is12h ? "hh" : "HH")
+            readonly property string hours: is12h ? ("0" + (DateTime.clock.date.getHours() % 12 || 12)).slice(-2) : Qt.formatDateTime(DateTime.clock.date, "HH")
             readonly property string minutes: Qt.formatDateTime(DateTime.clock.date, "mm")
             readonly property string ampm: is12h ? Qt.formatDateTime(DateTime.clock.date, Config.options.time.format.includes("AP") ? "AP" : "ap").trim() : ""
 
@@ -98,7 +96,6 @@ Item {
                 }
             }
 
-            // LocalSend files attached chip
             Rectangle {
                 id: attachedChipVert
                 visible: LocalSend.droppedFiles.length > 0
@@ -138,7 +135,6 @@ Item {
         }
     }
 
-    // Horizontal
     Loader {
         id: rowLoader
         active: !root.vertical
@@ -149,7 +145,7 @@ Item {
             spacing: 4
             
             readonly property bool is12h: root.is12h
-            readonly property string hours: Qt.formatDateTime(DateTime.clock.date, is12h ? "hh" : "HH")
+            readonly property string hours: is12h ? ("0" + (DateTime.clock.date.getHours() % 12 || 12)).slice(-2) : Qt.formatDateTime(DateTime.clock.date, "HH")
             readonly property string minutes: Qt.formatDateTime(DateTime.clock.date, "mm")
             readonly property string ampm: is12h ? Qt.formatDateTime(DateTime.clock.date, Config.options.time.format.includes("AP") ? "AP" : "ap").trim() : ""
 
@@ -205,7 +201,6 @@ Item {
                 }
             }
 
-            // LocalSend files attached chip
             Rectangle {
                 id: attachedChipHoriz
                 visible: LocalSend.droppedFiles.length > 0
@@ -266,11 +261,10 @@ Item {
         }
     }
 
-    // Drag & Drop visual overlay feedback (Layout-aware and fully responsive)
     Rectangle {
         id: dropOverlay
         anchors.fill: parent
-        radius: Appearance.rounding.large // Match expressive clock pill rounding
+        radius: Appearance.rounding.large
         color: Appearance.colors.colPrimaryContainer
         border.width: 1.5
         border.color: Appearance.colors.colPrimary

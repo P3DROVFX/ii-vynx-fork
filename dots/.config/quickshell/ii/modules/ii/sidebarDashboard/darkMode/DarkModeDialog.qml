@@ -10,7 +10,6 @@ import Quickshell
 
 WindowDialog {
     id: root
-    backgroundHeight: 250
 
     WindowDialogTitle {
         text: Translation.tr("Appearance")
@@ -57,7 +56,24 @@ WindowDialog {
             }
             iconSize: Appearance.font.pixelSize.larger
             buttonIcon: "schedule"
-            text: Translation.tr("Auto Dark Mode (18:00 - 06:00)")
+            text: {
+                const fromStr = Config.options?.light?.darkMode?.from ?? "18:00";
+                const toStr = Config.options?.light?.darkMode?.to ?? "06:00";
+                const fromH = Number(fromStr.split(":")[0]);
+                const fromM = Number(fromStr.split(":")[1]);
+                const toH = Number(toStr.split(":")[0]);
+                const toM = Number(toStr.split(":")[1]);
+
+                const startTime = new Date();
+                startTime.setHours(fromH, fromM, 0, 0);
+                const endTime = new Date();
+                endTime.setHours(toH, toM, 0, 0);
+
+                const format = Config.options?.time.format ?? "hh:mm";
+                const startStr = Qt.locale().toString(startTime, format);
+                const endStr = Qt.locale().toString(endTime, format);
+                return Translation.tr("Auto Dark Mode (%1 - %2)").arg(startStr).arg(endStr);
+            }
             checked: Config.options.light.darkMode.automatic
             onCheckedChanged: {
                 Config.options.light.darkMode.automatic = checked;

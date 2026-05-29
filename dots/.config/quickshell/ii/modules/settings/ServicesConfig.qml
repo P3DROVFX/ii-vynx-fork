@@ -178,18 +178,6 @@ ContentPage {
                 Config.options.screenRecord.savePath = text;
             }
         }
-
-        ConfigSwitch {
-            buttonIcon: "videocam"
-            text: Translation.tr("Use OBS Studio for recording")
-            checked: Config.options.screenRecord.service === "obs"
-            onCheckedChanged: {
-                Config.options.screenRecord.service = checked ? "obs" : "wf-recorder";
-            }
-            StyledToolTip {
-                text: Translation.tr("If disabled or OBS is not found, wf-recorder will be used as a fallback.")
-            }
-        }
         
         MaterialTextArea {
             Layout.fillWidth: true

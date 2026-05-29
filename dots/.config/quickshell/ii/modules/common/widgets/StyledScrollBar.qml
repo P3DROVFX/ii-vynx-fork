@@ -6,7 +6,7 @@ import qs.modules.common.functions
 ScrollBar {
     id: root
 
-    property color thumbColor: Appearance.colors.colOnSurfaceVariant
+    property color thumbColor: Config.options.appearance.colorfulScrollbar ? Appearance.colors.colPrimary : Appearance.colors.colOnSurfaceVariant
     property color trackColor: Qt.rgba(thumbColor.r, thumbColor.g, thumbColor.b, 0.25)
     property real trackGap: 6
     property real barWidth: 6

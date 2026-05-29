@@ -410,6 +410,18 @@ ContentPage {
         title: Translation.tr("Extra")
 
         ConfigSwitch {
+            buttonIcon: "colors"
+            text: Translation.tr("Colorful scrollbar")
+            checked: Config.options.appearance.colorfulScrollbar
+            onCheckedChanged: {
+                Config.options.appearance.colorfulScrollbar = checked;
+            }
+            StyledToolTip {
+                text: Translation.tr("Makes the scrollbar thumb follow the primary color")
+            }
+        }
+
+        ConfigSwitch {
             buttonIcon: "buttons_alt"
             text: Translation.tr("Show AI provider and model buttons")
             checked: Config.options.sidebar.ai.showProviderAndModelButtons

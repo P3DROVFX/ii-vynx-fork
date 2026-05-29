@@ -12,7 +12,6 @@ SectionCard {
     Flickable {
         id: flickable
         Layout.fillWidth: true
-        Layout.rightMargin: -inDayForecastCard.margins
         Layout.preferredHeight: inDayForecastCard.forecastCardHeight
         contentWidth: rowLayout.implicitWidth
         clip: true
@@ -105,11 +104,6 @@ SectionCard {
                         }
                     }
                 }
-            }
-
-            // Beautiful spacer at the end of scroll to maintain margins symmetry
-            Item {
-                Layout.preferredWidth: inDayForecastCard.margins - rowLayout.spacing
             }
         }
     }

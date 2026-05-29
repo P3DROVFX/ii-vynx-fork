@@ -96,6 +96,7 @@ MouseArea {
                     percentage: ResourceUsage.memoryUsedPercentage
                     warningThreshold: Config.options.bar.resources.memoryWarningThreshold
                     implicitHeight: 24
+                    showPercentageText: false
                     colorActive: Appearance.colors.colOnTertiaryContainer
                     colorIcon: Appearance.colors.colOnTertiaryContainer
                     colorText: Appearance.colors.colOnTertiaryContainer
@@ -107,6 +108,7 @@ MouseArea {
                     percentage: ResourceUsage.cpuUsage
                     warningThreshold: Config.options.bar.resources.cpuWarningThreshold
                     implicitHeight: 24
+                    showPercentageText: false
                     colorActive: Appearance.colors.colOnTertiaryContainer
                     colorIcon: Appearance.colors.colOnTertiaryContainer
                     colorText: Appearance.colors.colOnTertiaryContainer
@@ -117,6 +119,7 @@ MouseArea {
                     shown: Config.options.bar.resources.alwaysShowCpuTemp
                     percentage: ResourceUsage.cpuTemp / 100
                     implicitHeight: 24
+                    showPercentageText: false
                     colorActive: Appearance.colors.colOnTertiaryContainer
                     colorIcon: Appearance.colors.colOnTertiaryContainer
                     colorText: Appearance.colors.colOnTertiaryContainer
@@ -127,6 +130,7 @@ MouseArea {
                     shown: Config.options.bar.resources.alwaysShowDisk
                     percentage: ResourceUsage.diskUsedPercentage
                     implicitHeight: 24
+                    showPercentageText: false
                     colorActive: Appearance.colors.colOnTertiaryContainer
                     colorIcon: Appearance.colors.colOnTertiaryContainer
                     colorText: Appearance.colors.colOnTertiaryContainer
@@ -138,6 +142,7 @@ MouseArea {
                     percentage: ResourceUsage.swapUsedPercentage
                     warningThreshold: Config.options.bar.resources.swapWarningThreshold
                     implicitHeight: 24
+                    showPercentageText: false
                     colorActive: Appearance.colors.colOnTertiaryContainer
                     colorIcon: Appearance.colors.colOnTertiaryContainer
                     colorText: Appearance.colors.colOnTertiaryContainer

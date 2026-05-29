@@ -476,10 +476,6 @@ Scope {
                             hideSource: false
                             smooth: true
                             textureSize: Qt.size(parent.width / 4, parent.height / 4)
-                            live: bgRoot.visible && outerTilesContainer.visible
-                            Component.onDestruction: {
-                                sourceItem = null;
-                            }
                         }
                         radius: 40
                         samples: 81
@@ -630,10 +626,6 @@ Scope {
                                     textureSize: Qt.size(centralWallpaperClipRect.width / 4, centralWallpaperClipRect.height / 4)
                                     smooth: true
                                     recursive: true
-                                    live: bgRoot.visible
-                                    Component.onDestruction: {
-                                        sourceItem = null;
-                                    }
                                 }
                                 radius: Math.round(Config.options.lock.blur.radius / 4)
                                 samples: Math.round(radius * 2 + 1)
