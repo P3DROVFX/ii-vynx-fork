@@ -21,8 +21,8 @@ colorstrings=''
 colorlist=()
 colorvalues=()
 
-colornames=$(cat $STATE_DIR/user/generated/material_colors.scss | cut -d: -f1)
-colorstrings=$(cat $STATE_DIR/user/generated/material_colors.scss | cut -d: -f2 | cut -d ' ' -f2 | cut -d ";" -f1)
+colornames=$(grep -E '^\$[a-zA-Z0-9_]+:' "$STATE_DIR/user/generated/material_colors.scss" | tr -d '\r' | cut -d: -f1)
+colorstrings=$(grep -E '^\$[a-zA-Z0-9_]+:' "$STATE_DIR/user/generated/material_colors.scss" | tr -d '\r' | cut -d: -f2 | awk '{print $1}' | tr -d ';')
 IFS=$'\n'
 colorlist=($colornames)     # Array of color names
 colorvalues=($colorstrings) # Array of color values
@@ -38,7 +38,9 @@ apply_kitty() {
   cp "$SCRIPT_DIR/terminal/kitty-theme.conf" "$STATE_DIR"/user/generated/terminal/kitty-theme.conf
   # Apply colors
   for i in "${!colorlist[@]}"; do
-    sed -i "s/${colorlist[$i]} #/${colorvalues[$i]#\#}/g" "$STATE_DIR"/user/generated/terminal/kitty-theme.conf
+    [[ -z "${colorlist[$i]}" || -z "${colorvalues[$i]}" ]] && continue
+    local pattern="${colorlist[$i]//\$/\\\$}"
+    sed -i "s/${pattern} #/${colorvalues[$i]#\#}/g" "$STATE_DIR"/user/generated/terminal/kitty-theme.conf
   done
 
   # Ensure current-theme.conf is a symlink to our generated kitty-theme.conf
@@ -71,7 +73,9 @@ apply_anyterm() {
   cp "$SCRIPT_DIR/terminal/sequences.txt" "$STATE_DIR"/user/generated/terminal/sequences.txt
   # Apply colors
   for i in "${!colorlist[@]}"; do
-    sed -i "s/${colorlist[$i]} #/${colorvalues[$i]#\#}/g" "$STATE_DIR"/user/generated/terminal/sequences.txt
+    [[ -z "${colorlist[$i]}" || -z "${colorvalues[$i]}" ]] && continue
+    local pattern="${colorlist[$i]//\$/\\\$}"
+    sed -i "s/${pattern} #/${colorvalues[$i]#\#}/g" "$STATE_DIR"/user/generated/terminal/sequences.txt
   done
 
   sed -i "s/\$alpha/$term_alpha/g" "$STATE_DIR/user/generated/terminal/sequences.txt"

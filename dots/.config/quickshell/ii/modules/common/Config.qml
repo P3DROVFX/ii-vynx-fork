@@ -986,6 +986,7 @@ Singleton {
 
             property JsonObject screenRecord: JsonObject {
                 property string savePath: Directories.videos.replace("file://", "") // strip "file://"
+                property string service: "wf-recorder"
             }
 
             property JsonObject screenSnip: JsonObject {

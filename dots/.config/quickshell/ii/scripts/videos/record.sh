@@ -1,12 +1,21 @@
 #!/usr/bin/env bash
 
+# Clear AppImage library overrides to avoid breaking system commands like flatpak/obs
+unset LD_LIBRARY_PATH
+unset LD_PRELOAD
+
 CONFIG_FILE="$HOME/.config/illogical-impulse/config.json"
 JSON_PATH=".screenRecord.savePath"
+SERVICE_PATH=".screenRecord.service"
 
 STATE_FILE="$HOME/.local/state/quickshell/states.json"
 STATE_JSON_PATH=".screenRecord.active"
 
 CUSTOM_PATH=$(jq -r "$JSON_PATH" "$CONFIG_FILE" 2>/dev/null)
+REC_SERVICE=$(jq -r "$SERVICE_PATH" "$CONFIG_FILE" 2>/dev/null)
+if [[ -z "$REC_SERVICE" || "$REC_SERVICE" == "null" ]]; then
+    REC_SERVICE="obs"
+fi
 
 RECORDING_DIR=""
 
@@ -52,10 +61,24 @@ getdate() {
 }
 
 getaudiooutput() {
-    pactl get-default-sink | sed 's/$/.monitor/'
+    local monitor=$(pactl list sources 2>/dev/null | grep 'Name' | grep 'monitor' | cut -d ' ' -f2 | head -n1)
+    if [[ -z "$monitor" ]]; then
+        pactl get-default-sink 2>/dev/null | sed 's/$/.monitor/'
+    else
+        echo "$monitor"
+    fi
 }
 getactivemonitor() {
-    hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .name'
+    local active=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .name' 2>/dev/null)
+    if [[ -z "$active" || "$active" == "null" ]]; then
+        # Fallback to the first monitor
+        active=$(hyprctl monitors -j | jq -r '.[0].name' 2>/dev/null)
+    fi
+    if [[ -z "$active" || "$active" == "null" ]]; then
+        # Second fallback
+        active=$(hyprctl activeworkspace -j | jq -r '.monitor' 2>/dev/null)
+    fi
+    echo "$active"
 }
 
 updateloading() {
@@ -107,6 +130,7 @@ MANUAL_REGION=""
 SOUND_FLAG=0
 FULLSCREEN_FLAG=0
 REGION_FLAG=0
+OBS_FLAG=0
 
 for ((i=0;i<${#ARGS[@]};i++)); do
     if [[ "${ARGS[i]}" == "--region" ]]; then
@@ -119,14 +143,23 @@ for ((i=0;i<${#ARGS[@]};i++)); do
         SOUND_FLAG=1
     elif [[ "${ARGS[i]}" == "--fullscreen" ]]; then
         FULLSCREEN_FLAG=1
+    elif [[ "${ARGS[i]}" == "--obs" ]]; then
+        OBS_FLAG=1
     fi
 done
-
+IS_OBS_RECORDING=0
 if pgrep -x "obs" > /dev/null || pgrep -f "com.obsproject.Studio" > /dev/null; then
-    notify-send "Recording Stopped" "Stopped (OBS) & Closed" -a 'Recorder' &
-    updatestate false
-    pkill -TERM -x obs 2>/dev/null
-    pkill -TERM -f "com.obsproject.Studio" 2>/dev/null
+    STATUS=$(python3 "/home/pedro/.config/quickshell/ii/scripts/videos/obs_control.py" status 2>/dev/null)
+    if [[ "$STATUS" == "active" ]]; then
+        IS_OBS_RECORDING=1
+    fi
+fi
+
+if [[ $IS_OBS_RECORDING -eq 1 ]]; then
+    notify-send "Stopping OBS Recording..." "Saving file..." -a 'Recorder' &
+    python3 "/home/pedro/.config/quickshell/ii/scripts/videos/obs_control.py" stop
+    sleep 1.5
+    pkill -x "obs" || pkill -f "com.obsproject.Studio"
     exit 0
 fi
 
@@ -146,41 +179,65 @@ if [[ $REGION_FLAG -eq 1 && -z "$MANUAL_REGION" ]]; then
     fi
 fi
 OBS_CMD=""
-if flatpak list 2>/dev/null | grep -q "com.obsproject.Studio"; then
-    OBS_CMD="flatpak run com.obsproject.Studio"
-elif command -v obs &> /dev/null; then
-    OBS_CMD="obs"
+if [[ "$REC_SERVICE" == "obs" ]]; then
+    if [[ -d "/var/lib/flatpak/app/com.obsproject.Studio" || -d "$HOME/.local/share/flatpak/app/com.obsproject.Studio" ]]; then
+        OBS_CMD="flatpak run com.obsproject.Studio"
+    elif command -v obs &> /dev/null; then
+        OBS_CMD="obs"
+    elif flatpak list 2>/dev/null | grep -q "com.obsproject.Studio"; then
+        OBS_CMD="flatpak run com.obsproject.Studio"
+    fi
 fi
 
 # Set loading state immediately to give UI feedback
 updateloading true
 
 if [[ -n "$OBS_CMD" ]]; then
-    notify-send "Starting OBS..." "OBS starting to record" -a 'Recorder' &
-    
-    nohup $OBS_CMD --startrecording --minimize-to-tray > /dev/null 2>&1 &
-    
-    while ! pgrep -x "obs" > /dev/null && ! pgrep -f "com.obsproject.Studio" > /dev/null; do
-        sleep 1
-    done
-    
-    sleep 1 # Wait slightly for log file to actually be created
-    LOG_FILE=$(ls -1t ~/.var/app/com.obsproject.Studio/config/obs-studio/logs/*.txt ~/.config/obs-studio/logs/*.txt 2>/dev/null | head -1)
-    
-    if [[ -f "$LOG_FILE" ]]; then
-        for i in {1..20}; do
-            if grep -q "==== Recording Start" "$LOG_FILE"; then
+    if ! pgrep -x "obs" > /dev/null && ! pgrep -f "com.obsproject.Studio" > /dev/null; then
+        notify-send "Starting OBS..." "OBS starting, please wait..." -a 'Recorder' &
+        # Do NOT pass --startrecording here: OBS would open the xdg-desktop-portal
+        # screen-picker dialog. Instead, open OBS minimized with its saved scenes,
+        # then trigger recording via WebSocket so it uses the pre-configured sources.
+        nohup $OBS_CMD --minimize-to-tray > /dev/null 2>&1 &
+        
+        # Wait for OBS process to appear
+        for i in {1..30}; do
+            if pgrep -x "obs" > /dev/null || pgrep -f "com.obsproject.Studio" > /dev/null; then
                 break
             fi
-            sleep 0.5
+            sleep 1
         done
+        
+        # Wait for WebSocket server to become available (OBS needs a few seconds)
+        for i in {1..20}; do
+            STATUS=$(python3 "/home/pedro/.config/quickshell/ii/scripts/videos/obs_control.py" status 2>/dev/null)
+            if [[ "$STATUS" == "inactive" || "$STATUS" == "active" ]]; then
+                break
+            fi
+            sleep 1
+        done
+        
+        notify-send "Starting OBS Recording..." "Triggering via WebSocket" -a 'Recorder' &
+        python3 "/home/pedro/.config/quickshell/ii/scripts/videos/obs_control.py" start
+        sleep 1
     else
-        sleep 4
+        notify-send "Starting OBS Recording..." "Triggering OBS via WebSocket" -a 'Recorder' &
+        python3 "/home/pedro/.config/quickshell/ii/scripts/videos/obs_control.py" start
+        sleep 1
     fi
 
-        updatestate true
+    updatestate true
     
-    while pgrep -x "obs" > /dev/null || pgrep -f "com.obsproject.Studio" > /dev/null; do
+    while true; do
+        if ! pgrep -x "obs" > /dev/null && ! pgrep -f "com.obsproject.Studio" > /dev/null; then
+            break
+        fi
+        STATUS=$(python3 "/home/pedro/.config/quickshell/ii/scripts/videos/obs_control.py" status 2>/dev/null)
+        if [[ "$STATUS" == "inactive" ]]; then
+            sleep 1
+            pkill -x "obs" || pkill -f "com.obsproject.Studio"
+            break
+        fi
         sleep 1
     done
     
@@ -209,27 +266,45 @@ if [[ -n "$OBS_CMD" ]]; then
     exit 0
 else
     FILENAME="recording_$(getdate).mp4"
-    notify-send "Starting recording" "$FILENAME" -a 'Recorder' & disown
     
-    # Give it a tiny bit more time for the notification to settle
-    sleep 0.2
-    updatestate true
-
-    REC_OPTS=""
-    if [[ -n "$MANUAL_REGION" ]]; then
-        REC_OPTS="-g \"$MANUAL_REGION\""
+    if [[ $FULLSCREEN_FLAG -eq 1 ]]; then
+        notify-send "Starting recording" "$FILENAME" -a 'Recorder' & disown
+        updatestate true
+        if [[ $SOUND_FLAG -eq 1 ]]; then
+            wf-recorder -o "$(getactivemonitor)" --pixel-format yuv420p -f "$FILENAME" --audio="$(getaudiooutput)"
+        else
+            wf-recorder -o "$(getactivemonitor)" --pixel-format yuv420p -f "$FILENAME" 
+        fi
     else
-        REC_OPTS="-o \"$(getactivemonitor)\""
+        # If a manual region was provided via --region, use it; otherwise run slurp as before.
+        if [[ -n "$MANUAL_REGION" ]]; then
+            region="$MANUAL_REGION"
+        else
+            if ! region="$(slurp 2>&1)"; then
+                notify-send "Recording cancelled" "Selection was cancelled" -a 'Recorder' & disown
+                updatestate false
+                exit 1
+            fi
+        fi
+
+        pos="${region%% *}"      # x,y
+        size="${region##* }"     # WxH
+        x="${pos%,*}"
+        y="${pos#*,}"
+        geometry="${x},${y} ${size}"
+
+        notify-send "Starting recording" "$FILENAME" -a 'Recorder' & disown
+        updatestate true
+        if [[ $SOUND_FLAG -eq 1 ]]; then
+            wf-recorder -o "$(getactivemonitor)" --pixel-format yuv420p -f "$FILENAME"  --geometry "$geometry" --audio="$(getaudiooutput)"
+        else
+            wf-recorder -o "$(getactivemonitor)" --pixel-format yuv420p -f "$FILENAME"  --geometry "$geometry"
+        fi
     fi
 
-    if [[ $SOUND_FLAG -eq 1 ]]; then
-        eval "wf-recorder $REC_OPTS --pixel-format yuv420p -c libx264 -p preset=fast -p tune=zerolatency -p crf=10 -p x264-params=scenecut=0 -f \"$FILENAME\" --audio=\"$(getaudiooutput)\" &"
-    else
-        eval "wf-recorder $REC_OPTS --pixel-format yuv420p -c libx264 -p preset=fast -p tune=zerolatency -p crf=10 -p x264-params=scenecut=0 -f \"$FILENAME\" &"
+    # Post recording action (launch video editor)
+    if [[ -f "$FILENAME" ]]; then
+        qs -c ii ipc call launchVideoEditor handle "$PWD/$FILENAME"
     fi
-    
-    REC_PID=$!
-    wait $REC_PID
-    qs -c ii ipc call launchVideoEditor handle "$PWD/$FILENAME"
     updatestate false
 fi
