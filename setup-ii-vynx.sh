@@ -142,6 +142,13 @@ backup_protected_files() {
         local src="$target/$rel"
         if [ -f "$src" ]; then
             if [ "$rel" = "modules/settings/About.qml" ]; then
+                # Only preserve About.qml when switching/updating to official ii-vynx.
+                # If we are installing or updating the fork (USE_II_VYNX=false), we want to overwrite it
+                # so the user gets the updated About.qml from the fork repository.
+                if [ "$USE_II_VYNX" = "false" ]; then
+                    echo -e "${YELLOW}• Updating fork: Overwriting About.qml with updated repository version.${NC}"
+                    continue
+                fi
                 if ! grep -q "update-fork" "$src" 2>/dev/null; then
                     echo -e "${YELLOW}• About.qml lacks update buttons. Replacing with repository version.${NC}"
                     continue
