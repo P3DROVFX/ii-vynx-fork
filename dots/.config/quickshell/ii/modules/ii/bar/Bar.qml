@@ -31,15 +31,12 @@ Scope {
             required property ShellScreen modelData
             property int monitorIndex: barVariant.variantModel.indexOf(modelData)
 
-            readonly property HyprlandMonitor barMonitor: Hyprland.monitorFor(modelData)
-            readonly property list<HyprlandWorkspace> barWorkspacesForMonitor: Hyprland.workspaces.values.filter(ws => ws.monitor && ws.monitor.name === barMonitor.name)
-            readonly property bool barFullscreen: barWorkspacesForMonitor.some(ws => ws.active && ws.toplevels.values.some(win => win.wayland?.fullscreen))
 
             active: GlobalStates.barOpen && !GlobalStates.screenLocked
             component: PanelWindow { // Bar window
                 id: barRoot
                 screen: barLoader.modelData
-                visible: !barLoader.barFullscreen
+
 
                 property int monitorIndex: barLoader.monitorIndex
                 property bool hasActiveWindows: false
