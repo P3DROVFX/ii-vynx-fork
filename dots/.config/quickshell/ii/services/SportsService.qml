@@ -11,6 +11,7 @@ Item {
     property int updateInterval: Config.options.bar.sports.updateInterval
 
     property var allGames: []
+    property var customOrder: []
     property int currentGameIndex: 0
     property var currentGame: null
 
@@ -303,10 +304,24 @@ Item {
             }
         }
 
-        validGames.sort((a, b) => {
-            const order = { "in": 0, "pre": 1, "post": 2 };
-            return (order[a.state] || 3) - (order[b.state] || 3);
-        });
+        if (customOrder && customOrder.length > 0) {
+            validGames.sort((a, b) => {
+                let idxA = customOrder.indexOf(a.id);
+                let idxB = customOrder.indexOf(b.id);
+                if (idxA !== -1 && idxB !== -1) {
+                    return idxA - idxB;
+                }
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
+                const order = { "in": 0, "pre": 1, "post": 2 };
+                return (order[a.state] || 3) - (order[b.state] || 3);
+            });
+        } else {
+            validGames.sort((a, b) => {
+                const order = { "in": 0, "pre": 1, "post": 2 };
+                return (order[a.state] || 3) - (order[b.state] || 3);
+            });
+        }
 
         let nextIndex = 0;
         let currentId = currentGame ? currentGame.id : null;
