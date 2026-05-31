@@ -597,6 +597,7 @@ Singleton {
                     property bool compactPopups: false
                     property bool enableColorPickerPopup: true
                     property bool enableBluetoothConnectionPopup: true
+                    property bool enableKeyboardLayoutTransitionPopup: true
                 }
                 property string bluetoothDevicesLayout: "expressive" // Options: classic, expressive
                 property JsonObject sizes: JsonObject {

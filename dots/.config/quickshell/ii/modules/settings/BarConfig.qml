@@ -1212,6 +1212,14 @@ ContentPage {
                 Config.options.bar.tooltips.enableBluetoothConnectionPopup = checked;
             }
         }
+        ConfigSwitch {
+            buttonIcon: "keyboard"
+            text: Translation.tr("Enable keyboard layout transition popup")
+            checked: Config.options.bar.tooltips.enableKeyboardLayoutTransitionPopup
+            onCheckedChanged: {
+                Config.options.bar.tooltips.enableKeyboardLayoutTransitionPopup = checked;
+            }
+        }
     }
 
     ContentSection {
