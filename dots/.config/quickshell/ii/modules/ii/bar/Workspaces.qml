@@ -413,11 +413,19 @@ Item {
         }
 
         onWheel: event => {
-            // console.log(event.angleDelta.y)
-            if (event.angleDelta.y < 0)
-                Hyprland.dispatch(`hl.dsp.focus({workspace = "r+1"})`);
-            else if (event.angleDelta.y > 0)
-                Hyprland.dispatch(`hl.dsp.focus({workspace = "r-1"})`);
+            event.accepted = true;
+            if (dynamicWorkspaces) {
+                if (event.angleDelta.y < 0)
+                    Hyprland.dispatch("hl.dsp.focus({workspace = 'r+1'})");
+                else if (event.angleDelta.y > 0)
+                    Hyprland.dispatch("hl.dsp.focus({workspace = 'r-1'})");
+            } else {
+                let nextId = effectiveActiveWorkspaceId + (event.angleDelta.y < 0 ? 1 : -1);
+                const minId = workspaceOffset + workspaceGroup * workspacesShown + 1;
+                const maxId = workspaceOffset + (workspaceGroup + 1) * workspacesShown;
+                if (nextId < minId || nextId > maxId) return;
+                Hyprland.dispatch("hl.dsp.focus({ workspace = '" + nextId + "' })");
+            }
         }
     }
 
