@@ -226,6 +226,7 @@ Item {
         cursorShape: Qt.PointingHandCursor
         acceptedButtons: Qt.NoButton
         onWheel: (wheel) => {
+            wheel.accepted = true;
             if (dynamicWorkspaces) {
                 // In dynamic mode, scroll through existing workspaces (skipping empty)
                 if (wheel.angleDelta.y > 0) Hyprland.dispatch("hl.dsp.focus({workspace = 'r-1'})");

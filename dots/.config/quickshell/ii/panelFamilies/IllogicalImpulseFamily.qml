@@ -28,6 +28,7 @@ import qs.modules.ii.colorPickerPopup
 import qs.modules.ii.videoEditor
 import qs.modules.ii.localSendPopup
 import qs.modules.ii.scratchpadOverlay
+import qs.modules.ii.keyboardLayoutTransitionPopup
 
 Scope {
     property bool barExtraCondition: true
@@ -70,6 +71,9 @@ Scope {
     }
     PanelLoader {
         component: BluetoothConnectionPopup {}
+    }
+    PanelLoader {
+        component: KeyboardLayoutTransitionPopup {}
     }
     PanelLoader {
         component: LocalSendPopup {}

@@ -135,7 +135,7 @@ MouseArea {
             anchors.topMargin: 8
             anchors.horizontalCenter: parent.horizontalCenter
             font.pixelSize: Appearance.font.pixelSize.smaller
-            color: Appearance.colors.colPrimary
+            color: Appearance.colors.colOnPrimaryContainer
             text: (Weather.data?.temp ?? "--°").replace(/[CF]$/, "")
             horizontalAlignment: Text.AlignHCenter
         }

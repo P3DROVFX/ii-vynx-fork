@@ -1212,6 +1212,14 @@ ContentPage {
                 Config.options.bar.tooltips.enableBluetoothConnectionPopup = checked;
             }
         }
+        ConfigSwitch {
+            buttonIcon: "keyboard"
+            text: Translation.tr("Enable keyboard layout transition popup")
+            checked: Config.options.bar.tooltips.enableKeyboardLayoutTransitionPopup
+            onCheckedChanged: {
+                Config.options.bar.tooltips.enableKeyboardLayoutTransitionPopup = checked;
+            }
+        }
     }
 
     ContentSection {
@@ -1227,14 +1235,7 @@ ContentPage {
                 Config.options.bar.resources.showPercentageText = checked;
             }
         }
-        ConfigSwitch {
-            buttonIcon: "fluid_med"
-            text: Translation.tr("Expressive resources popup")
-            checked: Config.options.bar.resources.expressivePopup
-            onCheckedChanged: {
-                Config.options.bar.resources.expressivePopup = checked;
-            }
-        }
+
         ConfigRow {
             ConfigSwitch {
                 buttonIcon: "memory"
@@ -1268,6 +1269,12 @@ ContentPage {
             text: Translation.tr("Swap")
             checked: Config.options.bar.resources.alwaysShowSwap
             onCheckedChanged: Config.options.bar.resources.alwaysShowSwap = checked
+        }
+        ConfigSwitch {
+            buttonIcon: "dns"
+            text: Translation.tr("Docker")
+            checked: Config.options.bar.resources.showDocker
+            onCheckedChanged: Config.options.bar.resources.showDocker = checked
         }
     }
 

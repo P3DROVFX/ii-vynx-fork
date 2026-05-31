@@ -84,7 +84,13 @@ Item {
                 break;
             }
         }
-        selectedIndex = Math.min(firstRegularIndex, filteredEntries.length > 0 ? filteredEntries.length - 1 : 0);
+        let targetIndex = Math.min(firstRegularIndex, filteredEntries.length > 0 ? filteredEntries.length - 1 : 0);
+        if (selectedIndex === targetIndex) {
+            // Index didn't change, trigger startDecoding manually since onSelectedEntryChanged won't fire
+            startDecoding(selectedEntry);
+        } else {
+            selectedIndex = targetIndex;
+        }
         if (entryListView) {
             entryListView.currentIndex = selectedIndex;
             entryListView.positionViewAtIndex(selectedIndex, ListView.Contain);
@@ -104,7 +110,6 @@ Item {
 
     Component.onCompleted: {
         selectTimer.restart();
-        startDecoding(selectedEntry);
     }
 
     property string selectedDecodedContent: ""

@@ -210,6 +210,7 @@ Singleton {
 
             property JsonObject wallpaper: JsonObject {
                 property list<string> favourites: []
+                property list<string> favouriteDirectories: []
             }
         }
     }

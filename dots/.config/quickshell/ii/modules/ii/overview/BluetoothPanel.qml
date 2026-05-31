@@ -44,6 +44,66 @@ Item {
         onTriggered: root.isEnabling = false
     }
 
+    Timer {
+        id: connectionTimeoutTimer
+        interval: 1000
+        repeat: true
+        running: Object.keys(root.connectingDevices).length > 0 || Object.keys(root.disconnectingDevices).length > 0
+        onTriggered: {
+            const now = Date.now();
+            let changed = false;
+            let tempCon = Object.assign({}, root.connectingDevices);
+            let tempDis = Object.assign({}, root.disconnectingDevices);
+
+            for (const addr in tempCon) {
+                if (tempCon[addr] === true) {
+                    // Initialize timestamp
+                    tempCon[addr] = now;
+                } else if (now - tempCon[addr] > 12000) { // 12s timeout
+                    delete tempCon[addr];
+                    changed = true;
+                }
+            }
+
+            for (const addr in tempDis) {
+                if (tempDis[addr] === true) {
+                    tempDis[addr] = now;
+                } else if (now - tempDis[addr] > 12000) {
+                    delete tempDis[addr];
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                root.connectingDevices = tempCon;
+                root.disconnectingDevices = tempDis;
+            }
+        }
+    }
+
+    Connections {
+        target: BluetoothStatus
+        ignoreUnknownSignals: true
+        function onDeviceConnected(device) {
+            if (device && device.address) {
+                let tempCon = Object.assign({}, root.connectingDevices);
+                if (tempCon[device.address]) {
+                    delete tempCon[device.address];
+                    root.connectingDevices = tempCon;
+                }
+            }
+        }
+        function onDeviceDisconnected(device) {
+            if (device && device.address) {
+                let tempDis = Object.assign({}, root.disconnectingDevices);
+                if (tempDis[device.address]) {
+                    delete tempDis[device.address];
+                    root.disconnectingDevices = tempDis;
+                }
+            }
+        }
+    }
+
     onDeviceListChanged: {
         if (selectedIndex >= deviceList.length && deviceList.length > 0)
             selectedIndex = deviceList.length - 1;
@@ -665,7 +725,7 @@ Item {
                                  implicitWidth: 32
                                  implicitHeight: 32
 
-                                 readonly property bool isProcessing: deviceDelegate.dev ? (root.connectingDevices[deviceDelegate.dev.address] || root.disconnectingDevices[deviceDelegate.dev.address]) : false
+                                 readonly property bool isProcessing: deviceDelegate.dev ? (deviceDelegate.dev.state === 3 || deviceDelegate.dev.state === 2 || root.connectingDevices[deviceDelegate.dev.address] || root.disconnectingDevices[deviceDelegate.dev.address]) : false
 
                                  MaterialSymbol {
                                      anchors.centerIn: parent
@@ -715,8 +775,8 @@ Item {
                                          const dev = deviceDelegate.dev;
                                          if (!dev) return "";
                                          if (dev.connected) return Translation.tr("Connected");
-                                         if (dev.address && root.connectingDevices[dev.address]) return Translation.tr("Connecting...");
-                                         if (dev.address && root.disconnectingDevices[dev.address]) return Translation.tr("Disconnecting...");
+                                         if (dev.address && (dev.state === 3 || root.connectingDevices[dev.address])) return Translation.tr("Connecting...");
+                                         if (dev.address && (dev.state === 2 || root.disconnectingDevices[dev.address])) return Translation.tr("Disconnecting...");
                                          if (dev.paired) return Translation.tr("Paired");
                                          return Translation.tr("Available");
                                      }
@@ -1045,7 +1105,7 @@ Item {
                                 colRipple: Appearance.colors.colPrimaryContainerActive
 
                                 property bool isActionSelected: root.selectedActionIndex === 0
-                                readonly property bool isProcessing: root.selectedDevice ? (root.connectingDevices[root.selectedDevice.address] || root.disconnectingDevices[root.selectedDevice.address]) : false
+                                readonly property bool isProcessing: root.selectedDevice ? (root.selectedDevice.state === 3 || root.selectedDevice.state === 2 || root.connectingDevices[root.selectedDevice.address] || root.disconnectingDevices[root.selectedDevice.address]) : false
 
                                 PointingHandInteraction {}
                                 onClicked: {
@@ -1098,12 +1158,12 @@ Item {
                                     StyledText {
                                         text: {
                                             if (root.selectedDevice?.connected) {
-                                                if (root.selectedDevice.address && root.disconnectingDevices[root.selectedDevice.address]) {
+                                                if (root.selectedDevice.address && (root.selectedDevice.state === 2 || root.disconnectingDevices[root.selectedDevice.address])) {
                                                     return Translation.tr("Disconnecting...");
                                                 }
                                                 return Translation.tr("Disconnect");
                                             } else {
-                                                if (root.selectedDevice?.address && root.connectingDevices[root.selectedDevice.address]) {
+                                                if (root.selectedDevice?.address && (root.selectedDevice.state === 3 || root.connectingDevices[root.selectedDevice.address])) {
                                                     return Translation.tr("Connecting...");
                                                 }
                                                 return Translation.tr("Connect");

@@ -280,19 +280,20 @@ StyledPopup {
                                 readonly property string currentMode: SoundcoreService.currentMode
                                 
                                 // ANC (Noise Canceling)
-                                Item {
-                                    Layout.preferredWidth: 32
-                                    Layout.preferredHeight: 32
-                                    Rectangle {
+                                RippleButton {
+                                    id: ancBtn
+                                    implicitWidth: 32
+                                    implicitHeight: 32
+                                    buttonRadius: 16
+                                    colBackground: parent.currentMode === "NoiseCanceling" ? Appearance.colors.colPrimary : Appearance.colors.colSurfaceContainerHighest
+                                    colBackgroundHover: parent.currentMode === "NoiseCanceling" ? Appearance.colors.colPrimaryHover : Appearance.colors.colSurfaceContainerHighestHover
+                                    onClicked: SoundcoreService.setMode("NoiseCanceling")
+
+                                    MaterialSymbol {
                                         anchors.centerIn: parent
-                                        width: 32; height: 32; radius: 16
-                                        color: parent.parent.currentMode === "NoiseCanceling" ? Appearance.colors.colPrimary : Appearance.colors.colSurfaceContainerHighest
-                                        MaterialSymbol {
-                                            anchors.centerIn: parent
-                                            text: "noise_control_off"
-                                            iconSize: 18
-                                            color: parent.parent.parent.currentMode === "NoiseCanceling" ? Appearance.colors.colOnPrimary : Appearance.colors.colOnSurfaceVariant
-                                        }
+                                        text: "noise_control_off"
+                                        iconSize: 18
+                                        color: ancBtn.colBackground === Appearance.colors.colPrimary ? Appearance.colors.colOnPrimary : Appearance.colors.colOnSurfaceVariant
                                     }
                                 }
 
@@ -303,19 +304,20 @@ StyledPopup {
                                 }
 
                                 // Normal
-                                Item {
-                                    Layout.preferredWidth: 32
-                                    Layout.preferredHeight: 32
-                                    Rectangle {
+                                RippleButton {
+                                    id: normalBtn
+                                    implicitWidth: 32
+                                    implicitHeight: 32
+                                    buttonRadius: 16
+                                    colBackground: parent.currentMode === "Normal" ? Appearance.colors.colPrimary : Appearance.colors.colSurfaceContainerHighest
+                                    colBackgroundHover: parent.currentMode === "Normal" ? Appearance.colors.colPrimaryHover : Appearance.colors.colSurfaceContainerHighestHover
+                                    onClicked: SoundcoreService.setMode("Normal")
+
+                                    MaterialSymbol {
                                         anchors.centerIn: parent
-                                        width: 32; height: 32; radius: 16
-                                        color: parent.parent.currentMode === "Normal" ? Appearance.colors.colPrimary : Appearance.colors.colSurfaceContainerHighest
-                                        MaterialSymbol {
-                                            anchors.centerIn: parent
-                                            text: "hearing"
-                                            iconSize: 18
-                                            color: parent.parent.parent.currentMode === "Normal" ? Appearance.colors.colOnPrimary : Appearance.colors.colOnSurfaceVariant
-                                        }
+                                        text: "hearing"
+                                        iconSize: 18
+                                        color: normalBtn.colBackground === Appearance.colors.colPrimary ? Appearance.colors.colOnPrimary : Appearance.colors.colOnSurfaceVariant
                                     }
                                 }
 
@@ -326,19 +328,20 @@ StyledPopup {
                                 }
 
                                 // Transparency
-                                Item {
-                                    Layout.preferredWidth: 32
-                                    Layout.preferredHeight: 32
-                                    Rectangle {
+                                RippleButton {
+                                    id: transBtn
+                                    implicitWidth: 32
+                                    implicitHeight: 32
+                                    buttonRadius: 16
+                                    colBackground: parent.currentMode === "Transparency" ? Appearance.colors.colPrimary : Appearance.colors.colSurfaceContainerHighest
+                                    colBackgroundHover: parent.currentMode === "Transparency" ? Appearance.colors.colPrimaryHover : Appearance.colors.colSurfaceContainerHighestHover
+                                    onClicked: SoundcoreService.setMode("Transparency")
+
+                                    MaterialSymbol {
                                         anchors.centerIn: parent
-                                        width: 32; height: 32; radius: 16
-                                        color: parent.parent.currentMode === "Transparency" ? Appearance.colors.colPrimary : Appearance.colors.colSurfaceContainerHighest
-                                        MaterialSymbol {
-                                            anchors.centerIn: parent
-                                            text: "visibility"
-                                            iconSize: 18
-                                            color: parent.parent.parent.currentMode === "Transparency" ? Appearance.colors.colOnPrimary : Appearance.colors.colOnSurfaceVariant
-                                        }
+                                        text: "visibility"
+                                        iconSize: 18
+                                        color: transBtn.colBackground === Appearance.colors.colPrimary ? Appearance.colors.colOnPrimary : Appearance.colors.colOnSurfaceVariant
                                     }
                                 }
                             }

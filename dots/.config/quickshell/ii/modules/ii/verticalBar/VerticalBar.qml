@@ -31,15 +31,24 @@ Scope {
             required property ShellScreen modelData
             property var monitorIndex: barVariant.variantModel.indexOf(barLoader.modelData)
 
-            readonly property HyprlandMonitor barMonitor: Hyprland.monitorFor(modelData)
-            readonly property list<HyprlandWorkspace> barWorkspacesForMonitor: Hyprland.workspaces.values.filter(ws => ws.monitor && ws.monitor.name === barMonitor.name)
-            readonly property bool barFullscreen: barWorkspacesForMonitor.some(ws => ws.active && ws.toplevels.values.some(win => win.wayland?.fullscreen))
 
             active: GlobalStates.barOpen && !GlobalStates.screenLocked
             component: PanelWindow { // Bar window
                 id: barRoot
                 screen: barLoader.modelData
-                visible: !barLoader.barFullscreen
+
+                // Fullscreen detection per monitor — hide bar instead of destroying it.
+                // Destroying/recreating the PanelWindow during fullscreen causes a Qt race
+                // condition: "Cannot use same item on different windows" → SEGFAULT.
+                // By keeping active:true and toggling visible, we avoid the crash.
+                property HyprlandMonitor hyprMonitor: Hyprland.monitorFor(barLoader.modelData)
+                property bool hasFullscreenOnThisMonitor: {
+                    const ws = barRoot.hyprMonitor?.activeWorkspace;
+                    if (!ws) return false;
+                    return ws.toplevels.values.some(w => w.wayland?.fullscreen === true);
+                }
+                visible: !barRoot.hasFullscreenOnThisMonitor
+
                 property var brightnessMonitor: Brightness.getMonitorForScreen(barLoader.modelData)
 
                 property int monitorIndex: barLoader.monitorIndex
@@ -90,7 +99,7 @@ Scope {
                 exclusionMode: ExclusionMode.Ignore
                 exclusiveZone: (Config?.options.bar.autoHide.enable && (!mustShow || !Config?.options.bar.autoHide.pushWindows)) ? 0 : Appearance.sizes.baseVerticalBarWidth + (Config.options.bar.cornerStyle === 1 ? Appearance.sizes.hyprlandGapsOut : 0)
                 WlrLayershell.namespace: "quickshell:verticalBar"
-                WlrLayershell.layer: WlrLayer.Overlay
+                // WlrLayershell.layer: WlrLayer.Overlay // TODO: enable this when bar can reliably hide when fullscreen without crashing
                 implicitWidth: Appearance.sizes.verticalBarWidth + Appearance.rounding.screenRounding
                 mask: Region {
                     item: hoverMaskRegion

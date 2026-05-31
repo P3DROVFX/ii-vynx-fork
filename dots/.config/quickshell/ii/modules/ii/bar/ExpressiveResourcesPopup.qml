@@ -10,24 +10,19 @@ StyledPopup {
     id: root
     popupRadius: Appearance.rounding.large
     stickyHover: true
-    
+    animateHeight: false
+
     // String cleanup functions
     function cleanDistro(name) {
-        return name.replace(/ Linux/g, "")
-                   .replace(/\s*\(.*?\)/g, "")
-                   .trim();
+        return name.replace(/ Linux/g, "").replace(/\s*\(.*?\)/g, "").trim();
     }
-    
+
     function cleanCpu(model) {
-        return model.replace(/Intel\(R\)|Core\(TM\)|CPU|Processor|(\d+th Gen)/g, "")
-                    .replace(/\s+/g, " ")
-                    .trim();
+        return model.replace(/Intel\(R\)|Core\(TM\)|CPU|Processor|(\d+th Gen)/g, "").replace(/\s+/g, " ").trim();
     }
-    
+
     function cleanGpu(model) {
-        return model.replace(/NVIDIA|GeForce|AMD|Radeon|Laptop GPU|Graphics/gi, "")
-                    .replace(/\s+/g, " ")
-                    .trim();
+        return model.replace(/NVIDIA|GeForce|AMD|Radeon|Laptop GPU|Graphics/gi, "").replace(/\s+/g, " ").trim();
     }
 
     contentItem: ColumnLayout {
@@ -41,17 +36,17 @@ StyledPopup {
             implicitHeight: 140
             radius: Appearance.rounding.large
             color: Appearance.colors.colPrimaryContainer
-            
+
             RowLayout {
                 anchors.fill: parent
                 anchors.margins: 16
                 spacing: 12
-                
+
                 MaterialShape {
                     shapeString: "Cookie9Sided"
                     implicitSize: 74
                     color: Appearance.m3colors.m3primary
-                    
+
                     MaterialSymbol {
                         anchors.centerIn: parent
                         text: "laptop_chromebook"
@@ -59,21 +54,23 @@ StyledPopup {
                         color: Appearance.m3colors.m3onPrimary
                     }
                 }
-                
-                Item { Layout.fillWidth: true }
+
+                Item {
+                    Layout.fillWidth: true
+                }
 
                 ColumnLayout {
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignRight
                     spacing: 4
-                    
+
                     Rectangle {
                         Layout.alignment: Qt.AlignRight
                         color: Appearance.colors.colPrimary
                         radius: Appearance.rounding.full
                         implicitWidth: distroRow.implicitWidth + 24
                         implicitHeight: 28
-                        
+
                         RowLayout {
                             id: distroRow
                             anchors.centerIn: parent
@@ -98,7 +95,7 @@ StyledPopup {
                         Layout.fillWidth: true
                         Layout.alignment: Qt.AlignRight
                         spacing: -2
-                        
+
                         StyledText {
                             Layout.fillWidth: true
                             horizontalAlignment: Text.AlignRight
@@ -109,7 +106,7 @@ StyledPopup {
                             elide: Text.ElideRight
                             maximumLineCount: 1
                         }
-                        
+
                         StyledText {
                             Layout.fillWidth: true
                             horizontalAlignment: Text.AlignRight
@@ -125,23 +122,23 @@ StyledPopup {
                 }
             }
         }
-        
+
         RowLayout {
             implicitWidth: 380
             spacing: 12
-            
+
             // CPU Card
             Rectangle {
                 Layout.fillWidth: true
                 implicitHeight: 165
                 radius: Appearance.rounding.large
                 color: Appearance.colors.colSurfaceContainerHigh
-                
+
                 ColumnLayout {
                     anchors.fill: parent
                     anchors.margins: 16
                     spacing: 0
-                    
+
                     RowLayout {
                         Layout.fillWidth: true
                         MaterialSymbol {
@@ -150,7 +147,9 @@ StyledPopup {
                             color: Appearance.colors.colOnLayer1
                             opacity: 0.8
                         }
-                        Item { Layout.fillWidth: true }
+                        Item {
+                            Layout.fillWidth: true
+                        }
                         RowLayout {
                             spacing: 4
                             MaterialSymbol {
@@ -166,13 +165,15 @@ StyledPopup {
                             }
                         }
                     }
-                    
-                    Item { Layout.fillHeight: true }
-                    
+
+                    Item {
+                        Layout.fillHeight: true
+                    }
+
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 4
-                        
+
                         StyledText {
                             text: "CPU Usage"
                             font.pixelSize: Appearance.font.pixelSize.smaller
@@ -180,14 +181,14 @@ StyledPopup {
                             color: Appearance.colors.colOnLayer1
                             opacity: 0.6
                         }
-                        
+
                         StyledText {
                             text: Math.round(ResourceUsage.cpuUsage * 100) + "%"
                             font.pixelSize: 36
                             font.weight: Font.Black
                             color: Appearance.colors.colOnLayer1
                         }
-                        
+
                         StyledProgressBar {
                             Layout.fillWidth: true
                             value: ResourceUsage.cpuUsage
@@ -198,19 +199,19 @@ StyledPopup {
                     }
                 }
             }
-            
+
             // GPU Card
             Rectangle {
                 Layout.fillWidth: true
                 implicitHeight: 165
                 radius: Appearance.rounding.large
                 color: Appearance.colors.colSurfaceContainerHigh
-                
+
                 ColumnLayout {
                     anchors.fill: parent
                     anchors.margins: 16
                     spacing: 0
-                    
+
                     RowLayout {
                         Layout.fillWidth: true
                         MaterialSymbol {
@@ -219,7 +220,9 @@ StyledPopup {
                             color: Appearance.colors.colOnLayer1
                             opacity: 0.8
                         }
-                        Item { Layout.fillWidth: true }
+                        Item {
+                            Layout.fillWidth: true
+                        }
                         RowLayout {
                             spacing: 4
                             MaterialSymbol {
@@ -235,13 +238,15 @@ StyledPopup {
                             }
                         }
                     }
-                    
-                    Item { Layout.fillHeight: true }
-                    
+
+                    Item {
+                        Layout.fillHeight: true
+                    }
+
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 4
-                        
+
                         StyledText {
                             text: "GPU Usage"
                             font.pixelSize: Appearance.font.pixelSize.smaller
@@ -249,14 +254,14 @@ StyledPopup {
                             color: Appearance.colors.colOnLayer1
                             opacity: 0.6
                         }
-                        
+
                         StyledText {
                             text: Math.round(ResourceUsage.gpuUsage * 100) + "%"
                             font.pixelSize: 36
                             font.weight: Font.Black
                             color: Appearance.colors.colOnLayer1
                         }
-                        
+
                         StyledProgressBar {
                             Layout.fillWidth: true
                             value: ResourceUsage.gpuUsage
@@ -268,24 +273,24 @@ StyledPopup {
                 }
             }
         }
-        
+
         // RAM Pill
         Rectangle {
             implicitWidth: 380
             implicitHeight: 64
             radius: Appearance.rounding.full
             color: Appearance.colors.colSecondaryContainer
-            
+
             RowLayout {
                 anchors.fill: parent
                 anchors.margins: 12
                 spacing: 12
-                
+
                 MaterialShape {
                     shapeString: "Circle"
                     implicitSize: 40
                     color: Appearance.colors.colLayer4
-                    
+
                     MaterialSymbol {
                         anchors.centerIn: parent
                         text: "memory"
@@ -293,7 +298,7 @@ StyledPopup {
                         color: Appearance.colors.colOnLayer4
                     }
                 }
-                
+
                 ColumnLayout {
                     spacing: -2
                     StyledText {
@@ -303,15 +308,17 @@ StyledPopup {
                         color: Appearance.colors.colOnSecondaryContainer
                     }
                     StyledText {
-                        text: (ResourceUsage.memoryUsed / (1024*1024)).toFixed(1) + " GB / " + (ResourceUsage.memoryTotal / (1024*1024)).toFixed(0) + " GB"
+                        text: (ResourceUsage.memoryUsed / (1024 * 1024)).toFixed(1) + " GB / " + (ResourceUsage.memoryTotal / (1024 * 1024)).toFixed(0) + " GB"
                         font.pixelSize: Appearance.font.pixelSize.normal
                         font.weight: Font.DemiBold
                         color: Appearance.colors.colOnSecondaryContainer
                     }
                 }
-                
-                Item { Layout.fillWidth: true }
-                
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
                 StyledText {
                     text: Math.round(ResourceUsage.memoryUsedPercentage * 100) + "%"
                     font.pixelSize: 24
@@ -321,24 +328,24 @@ StyledPopup {
                 }
             }
         }
-        
+
         // Disk Pill
         Rectangle {
             implicitWidth: 380
             implicitHeight: 64
             radius: Appearance.rounding.full
             color: Appearance.colors.colSecondaryContainer
-            
+
             RowLayout {
                 anchors.fill: parent
                 anchors.margins: 12
                 spacing: 12
-                
+
                 MaterialShape {
                     shapeString: "Circle"
                     implicitSize: 40
                     color: Appearance.colors.colLayer4
-                    
+
                     MaterialSymbol {
                         anchors.centerIn: parent
                         text: "hard_drive"
@@ -346,7 +353,7 @@ StyledPopup {
                         color: Appearance.colors.colOnLayer4
                     }
                 }
-                
+
                 ColumnLayout {
                     spacing: -2
                     StyledText {
@@ -356,15 +363,17 @@ StyledPopup {
                         color: Appearance.colors.colOnSecondaryContainer
                     }
                     StyledText {
-                        text: (ResourceUsage.diskUsed / (1024*1024*1024)).toFixed(1) + " GB / " + (ResourceUsage.diskTotal / (1024*1024*1024)).toFixed(0) + " GB"
+                        text: (ResourceUsage.diskUsed / (1024 * 1024 * 1024)).toFixed(1) + " GB / " + (ResourceUsage.diskTotal / (1024 * 1024 * 1024)).toFixed(0) + " GB"
                         font.pixelSize: Appearance.font.pixelSize.normal
                         font.weight: Font.DemiBold
                         color: Appearance.colors.colOnSecondaryContainer
                     }
                 }
-                
-                Item { Layout.fillWidth: true }
-                
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
                 StyledText {
                     text: Math.round(ResourceUsage.diskUsedPercentage * 100) + "%"
                     font.pixelSize: 24
@@ -372,6 +381,55 @@ StyledPopup {
                     color: Appearance.colors.colOnSecondaryContainer
                     Layout.rightMargin: 12
                 }
+            }
+        }
+
+        // ── Docker Integration ────────────────────────────────────────────
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: Config.options.bar.resources.showDocker
+            spacing: 12
+
+            // ── Docker divider ────────────────────────────────────────────────
+            RowLayout {
+                implicitWidth: 380
+                spacing: 10
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 1
+                    color: Qt.rgba(Appearance.colors.colOnLayer1.r, Appearance.colors.colOnLayer1.g, Appearance.colors.colOnLayer1.b, 0.08)
+                }
+
+                RowLayout {
+                    spacing: 4
+                    CustomIcon {
+                        source: "docker.svg"
+                        width: 12
+                        height: 12
+                        colorize: true
+                        color: Appearance.colors.colOnLayer1
+                        opacity: 0.35
+                    }
+                    StyledText {
+                        text: "Containers"
+                        font.pixelSize: Appearance.font.pixelSize.smaller
+                        font.weight: Font.Medium
+                        color: Appearance.colors.colOnLayer1
+                        opacity: 0.35
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 1
+                    color: Qt.rgba(Appearance.colors.colOnLayer1.r, Appearance.colors.colOnLayer1.g, Appearance.colors.colOnLayer1.b, 0.08)
+                }
+            }
+
+            // ── Docker section ────────────────────────────────────────────────
+            DockerSection {
+                implicitWidth: 380
             }
         }
     }

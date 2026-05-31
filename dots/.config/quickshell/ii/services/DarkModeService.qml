@@ -32,9 +32,9 @@ Singleton {
     }
 
     Component.onCompleted: {
-        if (automatic) {
-            checkTime();
-        }
+        // Always reset to false on startup — auto dark mode should not persist
+        // across reboots. User must explicitly re-enable it each session.
+        Config.options.light.darkMode.automatic = false;
     }
 
     function inBetween(t, from, to) {

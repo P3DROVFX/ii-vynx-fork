@@ -54,10 +54,19 @@ Item {
         anchors.fill: parent
         acceptedButtons: Qt.NoButton
         onWheel: (wheel) => {
-            if (wheel.angleDelta.y < 0)
-                Hyprland.dispatch("hl.dsp.focus({workspace = 'r+1'})");
-            else if (wheel.angleDelta.y > 0)
-                Hyprland.dispatch("hl.dsp.focus({workspace = 'r-1'})");
+            wheel.accepted = true;
+            if (Config.options.bar.workspaces.dynamicWorkspaces) {
+                if (wheel.angleDelta.y < 0)
+                    Hyprland.dispatch("hl.dsp.focus({workspace = 'r+1'})");
+                else if (wheel.angleDelta.y > 0)
+                    Hyprland.dispatch("hl.dsp.focus({workspace = 'r-1'})");
+            } else {
+                let nextId = effectiveActiveWorkspaceId + (wheel.angleDelta.y < 0 ? 1 : -1);
+                const minId = workspaceGroup * workspacesShown + 1;
+                const maxId = (workspaceGroup + 1) * workspacesShown;
+                if (nextId < minId || nextId > maxId) return;
+                Hyprland.dispatch("hl.dsp.focus({ workspace = '" + nextId + "' })");
+            }
         }
     }
 

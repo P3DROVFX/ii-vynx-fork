@@ -23,70 +23,95 @@ StyledPopup {
     contentItem: Item {
         id: content
         implicitWidth: 485
-        implicitHeight: Math.max(140, gamesColumn.implicitHeight)
+        implicitHeight: gamesColumn.visibleHeight
 
         StyledFlickable {
+            id: flickable
             anchors.fill: parent
             contentHeight: gamesColumn.implicitHeight
             clip: true
-            interactive: contentHeight > height
+            interactive: (gamesColumn.draggedIndex === -1) && (contentHeight > height)
 
             Item {
                 id: gamesColumn
                 width: 485
 
                 property int maxCards: Config.options.bar.sports.maxCardsPopup
-                property int visibleCards: Math.min(SportsService.allGames.length, maxCards)
-                property bool hasMore: SportsService.allGames.length > maxCards
+                property int draggedIndex: -1
+                property int hoverIndex: -1
+                property real dragY: 0
+                property bool snapping: false
 
-                property real lastCardY: {
-                    if (visibleCards === 0) return 0;
-                    let yPos = 0;
-                    let tc = SportsService.allGames.length;
-                    for (let i = 0; i < tc; i++) {
-                        let vIdx = tc === 0 ? i : ((i - SportsService.currentGameIndex + tc) % tc);
-                        if (vIdx < visibleCards - 1) {
-                            let md = SportsService.allGames[i];
-                            yPos += ((md && md.lastPlay) ? 190 : 140) + 8;
+                NumberAnimation {
+                    id: snapAnimation
+                    target: gamesColumn
+                    property: "dragY"
+                    duration: 200
+                    easing.type: Easing.OutCubic
+                    onFinished: {
+                        gamesColumn.snapping = false;
+                        gamesColumn.completeReorder();
+                    }
+                }
+
+                function getTargetCardY(draggedIdx, targetIdx) {
+                    if (draggedIdx === targetIdx) {
+                        return getCardY(draggedIdx, SportsService.allGames);
+                    }
+                    let temp = [...SportsService.allGames];
+                    let item = temp.splice(draggedIdx, 1)[0];
+                    temp.splice(targetIdx, 0, item);
+                    return getCardY(targetIdx, temp);
+                }
+
+                function completeReorder() {
+                    if (gamesColumn.draggedIndex !== -1 && gamesColumn.hoverIndex !== -1) {
+                        if (gamesColumn.draggedIndex !== gamesColumn.hoverIndex) {
+                            let arr = [...SportsService.allGames];
+                            let item = arr.splice(gamesColumn.draggedIndex, 1)[0];
+                            arr.splice(gamesColumn.hoverIndex, 0, item);
+
+                            // Whichever game is at the first index (index 0) becomes the active game
+                            SportsService.currentGameIndex = 0;
+                            SportsService.currentGame = arr[0];
+
+                            SportsService.customOrder = arr.map(g => g.id);
+
+                            gamesColumn.draggedIndex = -1;
+                            gamesColumn.hoverIndex = -1;
+
+                            SportsService.allGames = arr;
+                        } else {
+                            gamesColumn.draggedIndex = -1;
+                            gamesColumn.hoverIndex = -1;
                         }
+                    }
+                }
+
+                function getCardY(idx, gamesList) {
+                    let yPos = 0;
+                    for (let i = 0; i < idx; i++) {
+                        let physicalIdx = gamesList.length > 0 ? (i + SportsService.currentGameIndex) % gamesList.length : i;
+                        let md = gamesList[physicalIdx];
+                        let cardH = (md && md.lastPlay) ? 190 : 140;
+                        yPos += cardH + 8;
                     }
                     return yPos;
                 }
 
-                property real lastCardHeight: {
-                    if (visibleCards === 0) return 140;
-                    let tc = SportsService.allGames.length;
-                    for (let i = 0; i < tc; i++) {
-                        let vIdx = tc === 0 ? i : ((i - SportsService.currentGameIndex + tc) % tc);
-                        if (vIdx === visibleCards - 1) {
-                            let md = SportsService.allGames[i];
-                            return (md && md.lastPlay) ? 190 : 140;
-                        }
-                    }
-                    return 140;
+                property real visibleHeight: {
+                    if (SportsService.allGames.length === 0) return 140;
+                    let limit = Math.min(SportsService.allGames.length, maxCards);
+                    return Math.max(0, getCardY(limit, SportsService.allGames) - 8);
                 }
+
+                implicitHeight: SportsService.allGames.length === 0 ? 140 : Math.max(0, getCardY(SportsService.allGames.length, SportsService.allGames) - 8)
 
                 Connections {
                     target: Config.options.bar.sports
                     function onMaxCardsPopupChanged() {
                         gamesColumn.maxCards = Config.options.bar.sports.maxCardsPopup;
                     }
-                }
-
-                implicitHeight: {
-                    if (visibleCards === 0) return 0;
-                    let h = 0;
-                    let tc = SportsService.allGames.length;
-                    for (let i = 0; i < tc; i++) {
-                        let vIdx = tc === 0 ? i : ((i - SportsService.currentGameIndex + tc) % tc);
-                        if (vIdx < maxCards) {
-                            let md = SportsService.allGames[i];
-                            h += (md && md.lastPlay) ? 190 : 140;
-                        }
-                    }
-                    h += Math.max(0, visibleCards - 1) * 8;
-                    if (hasMore) h += 12;
-                    return h;
                 }
 
                 Repeater {
@@ -100,11 +125,29 @@ StyledPopup {
                         radius: root.radMain
                         
                         readonly property int totalCount: SportsService.allGames.length
-                        property int vIndex: {
-                            if (totalCount === 0)
-                                return index;
-                            let dIdx = SportsService.currentGameIndex;
-                            return (index - dIdx + totalCount) % totalCount;
+                        readonly property int vIndex: index
+                        readonly property int visualIndex: {
+                            let len = SportsService.allGames.length;
+                            if (len === 0) return index;
+                            return (index - SportsService.currentGameIndex + len) % len;
+                        }
+                        readonly property int previewIndex: {
+                            if (gamesColumn.draggedIndex === -1) {
+                                return visualIndex;
+                            }
+                            if (gamesColumn.draggedIndex === index) {
+                                return gamesColumn.hoverIndex;
+                            }
+                            if (gamesColumn.draggedIndex > gamesColumn.hoverIndex) {
+                                if (index >= gamesColumn.hoverIndex && index < gamesColumn.draggedIndex) {
+                                    return index + 1;
+                                }
+                            } else if (gamesColumn.draggedIndex < gamesColumn.hoverIndex) {
+                                if (index <= gamesColumn.hoverIndex && index > gamesColumn.draggedIndex) {
+                                    return index - 1;
+                                }
+                            }
+                            return index;
                         }
 
                         color: root.colCard
@@ -113,40 +156,107 @@ StyledPopup {
                             anchors.fill: parent
                             radius: parent.radius
                             color: Appearance.colors.colPrimaryContainer
-                            opacity: vIndex === 0 ? 1 : 0
+                            opacity: previewIndex === 0 ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.InOutQuad } }
                         }
 
-                        z: vIndex < gamesColumn.maxCards ? 10 - vIndex : -3
+                        z: gamesColumn.draggedIndex === index ? 100 : 10 - index
 
                         y: {
-                            let yPos = 0;
-                            let trigger = Math.min(vIndex, gamesColumn.maxCards);
-                            for (let i = 0; i < totalCount; i++) {
-                                let otherV = totalCount === 0 ? i : ((i - SportsService.currentGameIndex + totalCount) % totalCount);
-                                if (otherV < trigger) {
-                                    let md = SportsService.allGames[i];
-                                    let cardH = (md && md.lastPlay) ? 190 : 140;
-                                    yPos += cardH + 8;
+                            if (gamesColumn.draggedIndex === -1) {
+                                return gamesColumn.getCardY(visualIndex, SportsService.allGames);
+                            }
+                            if (gamesColumn.draggedIndex === index) {
+                                return gamesColumn.dragY;
+                            }
+                            let dH = ((SportsService.allGames[gamesColumn.draggedIndex]?.lastPlay ? 190 : 140) + 8);
+                            if (gamesColumn.draggedIndex > gamesColumn.hoverIndex) {
+                                if (index >= gamesColumn.hoverIndex && index < gamesColumn.draggedIndex) {
+                                    return gamesColumn.getCardY(index, SportsService.allGames) + dH;
+                                }
+                            } else if (gamesColumn.draggedIndex < gamesColumn.hoverIndex) {
+                                if (index <= gamesColumn.hoverIndex && index > gamesColumn.draggedIndex) {
+                                    return gamesColumn.getCardY(index, SportsService.allGames) - dH;
                                 }
                             }
-                            if (vIndex >= gamesColumn.maxCards) {
-                                yPos += 12;
-                            }
-                            return yPos;
+                            return gamesColumn.getCardY(index, SportsService.allGames);
                         }
 
                         Behavior on y {
+                            enabled: gamesColumn.draggedIndex !== index && !gamesColumn.snapping
                             NumberAnimation {
-                                duration: 400
-                                easing.type: Easing.OutBack
-                                easing.overshoot: 1.1
+                                duration: 250
+                                easing.type: Easing.OutCubic
                             }
                         }
+
+                        scale: gamesColumn.draggedIndex === index ? 1.03 : 1.0
+                        opacity: gamesColumn.draggedIndex === index ? 0.9 : 1.0
                         
-                        opacity: vIndex < gamesColumn.maxCards ? 1 : 0
-                        visible: opacity > 0 || vIndex < gamesColumn.maxCards
-                        Behavior on opacity { NumberAnimation { duration: 200 } }
+                        Behavior on scale {
+                            NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+                        }
+                        Behavior on opacity {
+                            NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+                        }
+
+                        DragManager {
+                            id: dragArea
+                            anchors.fill: parent
+                            interactive: !gamesColumn.snapping
+                            cursorShape: dragging ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+
+                            onPressed: (mouse) => {
+                                if (SportsService.currentGameIndex > 0 && SportsService.currentGameIndex < SportsService.allGames.length) {
+                                    let arr = [...SportsService.allGames];
+                                    let rotationCount = SportsService.currentGameIndex;
+                                    for (let r = 0; r < rotationCount; r++) {
+                                        let first = arr.shift();
+                                        arr.push(first);
+                                    }
+                                    SportsService.currentGameIndex = 0;
+                                    SportsService.allGames = arr;
+                                }
+
+                                gamesColumn.draggedIndex = index;
+                                gamesColumn.hoverIndex = index;
+                                gamesColumn.dragY = gamesColumn.getCardY(index, SportsService.allGames);
+                            }
+
+                            onDragPressed: (diffX, diffY) => {
+                                let startY = gamesColumn.getCardY(index, SportsService.allGames);
+                                gamesColumn.dragY = startY + diffY;
+
+                                // Find the index where the card is currently hovering
+                                let cy = gamesColumn.dragY + card.height / 2;
+                                let newHover = 0;
+                                let tc = SportsService.allGames.length;
+                                for (let i = 0; i < tc; i++) {
+                                    let yStart = gamesColumn.getCardY(i, SportsService.allGames);
+                                    let md = SportsService.allGames[i];
+                                    let h = (md && md.lastPlay) ? 190 : 140;
+                                    if (cy >= yStart && cy <= yStart + h + 8) {
+                                        newHover = i;
+                                        break;
+                                    }
+                                    if (cy > yStart + h + 8) {
+                                        newHover = i;
+                                    }
+                                }
+                                newHover = Math.max(0, Math.min(newHover, tc - 1));
+                                gamesColumn.hoverIndex = newHover;
+                            }
+
+                            onDragReleased: (diffX, diffY) => {
+                                if (gamesColumn.draggedIndex !== -1 && gamesColumn.hoverIndex !== -1) {
+                                    gamesColumn.snapping = true;
+                                    let targetY = gamesColumn.getTargetCardY(gamesColumn.draggedIndex, gamesColumn.hoverIndex);
+                                    snapAnimation.to = targetY;
+                                    snapAnimation.start();
+                                }
+                            }
+                        }
+
                         Item {
                             id: teamHeader
                             width: parent.width
@@ -170,7 +280,8 @@ StyledPopup {
                                     width: 72
                                     height: 72
                                     radius: root.radFull
-                                    color: vIndex === 0 ? Appearance.colors.colPrimary : Appearance.colors.colLayer3
+                                    color: previewIndex === 0 ? Appearance.colors.colPrimary : Appearance.colors.colLayer3
+                                    Behavior on color { ColorAnimation { duration: 200 } }
                                     anchors.top: parent.top
                                     anchors.horizontalCenter: parent.horizontalCenter
 
@@ -190,7 +301,8 @@ StyledPopup {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     text: modelData?.home?.name ?? ""
                                     font.pixelSize: Appearance.font.pixelSize.normal
-                                    color: vIndex === 0 ? Appearance.colors.colOnPrimaryContainer : root.colText
+                                    color: previewIndex === 0 ? Appearance.colors.colOnPrimaryContainer : root.colText
+                                    Behavior on color { ColorAnimation { duration: 200 } }
                                     elide: Text.ElideRight
                                     width: 130
                                     horizontalAlignment: Text.AlignHCenter
@@ -203,7 +315,8 @@ StyledPopup {
                                     text: modelData?.home?.score ?? "0"
                                     font.pixelSize: (text.length > 3) ? 16 : 32
                                     font.weight: Font.DemiBold
-                                    color: vIndex === 0 ? Appearance.colors.colOnPrimaryContainer : root.colText
+                                    color: previewIndex === 0 ? Appearance.colors.colOnPrimaryContainer : root.colText
+                                    Behavior on color { ColorAnimation { duration: 200 } }
                                     visible: modelData?.state !== "pre"
                                 }
                             }
@@ -220,7 +333,8 @@ StyledPopup {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     height: 32
                                     radius: root.radFull
-                                    color: vIndex === 0 ? Appearance.colors.colPrimary : root.colPill
+                                    color: previewIndex === 0 ? Appearance.colors.colPrimary : root.colPill
+                                    Behavior on color { ColorAnimation { duration: 200 } }
                                     
                                     readonly property int dynamicPadding: modelData?.state === "in" ? 20 : 6
                                     width: statusLabel.implicitWidth + (dynamicPadding * 2)
@@ -231,7 +345,8 @@ StyledPopup {
                                         text: modelData?.status ?? ""
                                         font.pixelSize: 14
                                         font.weight: Font.Bold
-                                        color: vIndex === 0 ? Appearance.colors.colOnPrimary : root.colOnPill
+                                        color: previewIndex === 0 ? Appearance.colors.colOnPrimary : root.colOnPill
+                                        Behavior on color { ColorAnimation { duration: 200 } }
                                     }
                                 }
 
@@ -240,7 +355,8 @@ StyledPopup {
                                     text: modelData?.league ?? ""
                                     font.pixelSize: Appearance.font.pixelSize.smaller
                                     font.weight: Font.Light
-                                    color: vIndex === 0 ? Appearance.colors.colOnPrimaryContainer : root.colSubtext
+                                    color: previewIndex === 0 ? Appearance.colors.colOnPrimaryContainer : root.colSubtext
+                                    Behavior on color { ColorAnimation { duration: 200 } }
                                     elide: Text.ElideRight
                                     width: 120
                                     horizontalAlignment: Text.AlignHCenter
@@ -260,7 +376,8 @@ StyledPopup {
                                     width: 72
                                     height: 72
                                     radius: root.radFull
-                                    color: vIndex === 0 ? Appearance.colors.colPrimary : Appearance.colors.colLayer3
+                                    color: previewIndex === 0 ? Appearance.colors.colPrimary : Appearance.colors.colLayer3
+                                    Behavior on color { ColorAnimation { duration: 200 } }
                                     anchors.top: parent.top
                                     anchors.horizontalCenter: parent.horizontalCenter
 
@@ -280,7 +397,8 @@ StyledPopup {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     text: modelData?.away?.name ?? ""
                                     font.pixelSize: Appearance.font.pixelSize.normal
-                                    color: vIndex === 0 ? Appearance.colors.colOnPrimaryContainer : root.colText
+                                    color: previewIndex === 0 ? Appearance.colors.colOnPrimaryContainer : root.colText
+                                    Behavior on color { ColorAnimation { duration: 200 } }
                                     elide: Text.ElideRight
                                     width: 130
                                     horizontalAlignment: Text.AlignHCenter
@@ -293,7 +411,8 @@ StyledPopup {
                                     text: modelData?.away?.score ?? "0"
                                     font.pixelSize: (text.length > 3) ? 16 : 32
                                     font.weight: Font.DemiBold
-                                    color: vIndex === 0 ? Appearance.colors.colOnPrimaryContainer : root.colText
+                                    color: previewIndex === 0 ? Appearance.colors.colOnPrimaryContainer : root.colText
+                                    Behavior on color { ColorAnimation { duration: 200 } }
                                     visible: modelData?.state !== "pre"
                                 }
                             }
@@ -322,36 +441,11 @@ StyledPopup {
                             elide: Text.ElideRight
                             text: modelData?.lastPlay ?? ""
                             font.pixelSize: Appearance.font.pixelSize.smaller
-                            color: vIndex === 0 ? Appearance.colors.colOnPrimaryContainer : root.colSubtext
+                            color: previewIndex === 0 ? Appearance.colors.colOnPrimaryContainer : root.colSubtext
+                            Behavior on color { ColorAnimation { duration: 200 } }
                             visible: modelData?.lastPlay ? true : false
                         }
                     }
-                }
-
-                Rectangle {
-                    id: stack1
-                    y: gamesColumn.lastCardY + 6
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 485 - 32
-                    height: gamesColumn.lastCardHeight
-                    z: -1
-                    visible: gamesColumn.hasMore
-                    color: root.colCard
-                    opacity: 0.4
-                    radius: root.radMain
-                }
-
-                Rectangle {
-                    id: stack2
-                    y: gamesColumn.lastCardY + 12
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 485 - 64
-                    height: gamesColumn.lastCardHeight
-                    z: -2
-                    visible: gamesColumn.hasMore
-                    color: root.colCard
-                    opacity: 0.2
-                    radius: root.radMain
                 }
 
                 StyledText {
@@ -365,6 +459,11 @@ StyledPopup {
                     color: Appearance.colors.colOnSurfaceVariant
                 }
             }
+        }
+
+        ScrollEdgeFade {
+            target: flickable
+            color: root.colBg
         }
     }
 }

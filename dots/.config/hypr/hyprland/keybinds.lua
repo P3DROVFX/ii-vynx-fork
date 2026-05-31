@@ -149,7 +149,7 @@ hl.bind("SUPER + P", hl.dsp.window.pin(), { description = "Window: Pin" })
 --#/# bind = SUPER+ALT, Hash,, -- Send to workspace -- (1, 2, 3,...)
 --# We use raw keycodes because some keyboard layouts register number keys as different chars. The codes can be verified with `wev`
 for i = 1, 10 do
-    local numberkey = {10,11,12,13,14,15,16,17,18,19}
+    local numberkey = { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 }
 
     hl.bind("SUPER + ALT + code:" .. numberkey[i], function()
         hl.dispatch(
@@ -218,10 +218,10 @@ hl.bind("SUPER + ALT + S", function()
             end
             
             if target_ws then
-                hl.dispatch(hl.dsp.window.move({ workspace = target_ws, follow = true }))
+                hl.dispatch(hl.dsp.window.move({ workspace = target_ws, silent = false }))
             end
         else
-            hl.dispatch(hl.dsp.window.move({ workspace = "special:special", follow = false }))
+            hl.dispatch(hl.dsp.window.move({ workspace = "special:special", silent = true }))
         end
     end)
     if not ok then
@@ -311,7 +311,7 @@ hl.bind("SUPER + ALT + Equal",
     hl.dsp.exec_cmd("notify-send 'Urgent notification' 'Ah hell no' -u critical -a 'Hyprland keybind'"))                             -- # [hidden]
 
 --##! Session
-hl.bind("SUPER + L", hl.dsp.exec_cmd("loginctl lock-session"), { description = "Misc: Lock" })
+hl.bind("SUPER + L", hl.dsp.exec_cmd(qsIpcCall .. " lock activate; loginctl lock-session"), { description = "Misc: Lock" })
 hl.bind("SUPER + SHIFT + L", hl.dsp.exec_cmd("systemctl suspend || loginctl suspend"),
     { locked = true, description = "Misc: Suspend system" })                                                                                   -- Sleep
 -- hl.bind("switch:on:Lid Switch", hl.dsp.exec_cmd("systemctl suspend || loginctl suspend"), {locked = true} ) -- # [hidden] Suspend when laptop lid is closed, uncomment if for whatever reason it's not the default behavior

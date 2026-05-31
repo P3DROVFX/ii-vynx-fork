@@ -172,14 +172,14 @@ Item {
             horizontalCenter: rootItem.vertical ? undefined : rootItem.horizontalCenter
         }
 
-        padding: (rootItem.isExpressive || modelData.id === "dashboard_panel_button" || modelData.id === "policies_panel_button") ? 0 : 5
-        leftPadding: rootItem.isExpressive ? 0 : padding
-        rightPadding: rootItem.isExpressive ? 0 : padding
-        topPadding: rootItem.isExpressive ? 0 : padding
-        bottomPadding: rootItem.isExpressive ? 0 : padding
+        padding: (rootItem.isExpressive || (modelData.id === "system_monitor" && Config.options.bar.resources.showDocker) || modelData.id === "dashboard_panel_button" || modelData.id === "policies_panel_button") ? 0 : 5
+        leftPadding: (rootItem.isExpressive || (modelData.id === "system_monitor" && Config.options.bar.resources.showDocker)) ? 0 : padding
+        rightPadding: (rootItem.isExpressive || (modelData.id === "system_monitor" && Config.options.bar.resources.showDocker)) ? 0 : padding
+        topPadding: (rootItem.isExpressive || (modelData.id === "system_monitor" && Config.options.bar.resources.showDocker)) ? 0 : padding
+        bottomPadding: (rootItem.isExpressive || (modelData.id === "system_monitor" && Config.options.bar.resources.showDocker)) ? 0 : padding
         startRadius: rootItem.startRadius
         endRadius: rootItem.endRadius
-        colBackground: isExpressive ? "transparent" : ((itemLoader.item?.activated || rootItem.highlighted) ? rootItem.colBackgroundHighlight : rootItem.colBackground)
+        colBackground: (isExpressive || (modelData.id === "system_monitor" && Config.options.bar.resources.showDocker)) ? "transparent" : ((itemLoader.item?.activated || rootItem.highlighted) ? rootItem.colBackgroundHighlight : rootItem.colBackground)
 
         Loader {
             id: itemLoader

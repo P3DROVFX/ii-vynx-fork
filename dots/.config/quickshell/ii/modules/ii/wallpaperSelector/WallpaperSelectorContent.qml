@@ -19,6 +19,40 @@ MouseArea {
     property bool favMode: false
     property bool browserMode: false
 
+    readonly property var sidebarDirectoriesModel: {
+        let base = [
+            { icon: "home", name: Translation.tr("Home"), path: Directories.home }, 
+            { icon: "docs", name: Translation.tr("Documents"), path: Directories.documents }, 
+            { icon: "download", name: Translation.tr("Downloads"), path: Directories.downloads }, 
+            { icon: "image", name: Translation.tr("Pictures"), path: Directories.pictures }, 
+            { icon: "movie", name: Translation.tr("Videos"), path: Directories.videos }, 
+            { icon: "public", name: Translation.tr("Browser"), path: "BROWSER_MODE" }, 
+            { icon: "favorite", name: Translation.tr("Favourites"), path: "FAVOURITES_MODE" }, 
+            { icon: "", name: "---", path: "INTENTIONALLY_INVALID_DIR" }
+        ];
+
+        const favDirs = Persistent.states.wallpaper.favouriteDirectories;
+        if (favDirs && favDirs.length > 0) {
+            for (let i = 0; i < favDirs.length; i++) {
+                const path = favDirs[i];
+                const folderName = path.split('/').pop() || path;
+                base.push({ icon: "folder_special", name: folderName, path: path });
+            }
+            base.push({ icon: "", name: "---", path: "INTENTIONALLY_INVALID_DIR" });
+        }
+
+        const configDirs = Config.options.wallpaperSelector.directories || [];
+        for (let i = 0; i < configDirs.length; i++) {
+            base.push(configDirs[i]);
+        }
+
+        if (Config.options.policies.weeb === 1) {
+            base.push({ icon: "favorite", name: Translation.tr("Homework"), path: `${Directories.pictures}/homework` });
+        }
+
+        return base;
+    }
+
     property var moreOptionsModelData: null
     property string filterText: extraOptions.text
 
@@ -380,18 +414,8 @@ MouseArea {
 
                                 Repeater {
                                     id: sideBarRepeater
-                                    model: [
-                                        { icon: "home", name: Translation.tr("Home"), path: Directories.home }, 
-                                        { icon: "docs", name: Translation.tr("Documents"), path: Directories.documents }, 
-                                        { icon: "download", name: Translation.tr("Downloads"), path: Directories.downloads }, 
-                                        { icon: "image", name: Translation.tr("Pictures"), path: Directories.pictures }, 
-                                        { icon: "movie", name: Translation.tr("Videos"), path: Directories.videos }, 
-                                        { icon: "public", name: Translation.tr("Browser"), path: "BROWSER_MODE" }, 
-                                        { icon: "favorite", name: Translation.tr("Favourites"), path: "FAVOURITES_MODE" }, 
-                                        { icon: "", name: "---", path: "INTENTIONALLY_INVALID_DIR" }, 
-                                        ...Config.options.wallpaperSelector.directories,
-                                        ...(Config.options.policies.weeb === 1 ? [{ icon: "favorite", name: Translation.tr("Homework"), path: `${Directories.pictures}/homework` }] : []),
-                                    ]
+                                    model: wallpaperSelectorContent.sidebarDirectoriesModel
+
                                     delegate: NavigationRailButton {
                                         id: quickDirButton
                                         required property var modelData
@@ -436,17 +460,66 @@ MouseArea {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                AddressBar {
-                    id: addressBar
+                RowLayout {
                     Layout.margins: 4
                     Layout.fillWidth: true
                     Layout.fillHeight: false
-                    directory: Wallpapers.effectiveDirectory
+                    spacing: 8
                     visible: !wallpaperSelectorContent.favMode && !wallpaperSelectorContent.browserMode
-                    onNavigateToDirectory: path => {
-                        Wallpapers.setDirectory(path.length == 0 ? "/" : path);
+
+                    AddressBar {
+                        id: addressBar
+                        Layout.fillWidth: true
+                        Layout.fillHeight: false
+                        directory: Wallpapers.effectiveDirectory
+                        onNavigateToDirectory: path => {
+                            Wallpapers.setDirectory(path.length == 0 ? "/" : path);
+                        }
+                        radius: wallpaperGridBackground.radius - 4
                     }
-                    radius: wallpaperGridBackground.radius - Layout.margins
+
+                    RippleButton {
+                        id: favFolderBtn
+                        implicitWidth: addressBar.implicitHeight
+                        implicitHeight: addressBar.implicitHeight
+                        buttonRadius: implicitWidth / 2
+                        colBackground: isCurrentFolderFavorited ? Appearance.colors.colPrimary : Appearance.colors.colLayer2
+                        colBackgroundHover: isCurrentFolderFavorited ? Appearance.colors.colPrimaryHover : Appearance.colors.colLayer2Hover
+                        
+                        readonly property bool isCurrentFolderFavorited: {
+                            const currentDir = FileUtils.trimFileProtocol(Wallpapers.effectiveDirectory);
+                            const favDirs = Persistent.states.wallpaper.favouriteDirectories;
+                            return favDirs.indexOf(currentDir) !== -1;
+                        }
+
+                        onClicked: {
+                            const currentDir = FileUtils.trimFileProtocol(Wallpapers.effectiveDirectory);
+                            let favDirs = [];
+                            const currentFavs = Persistent.states.wallpaper.favouriteDirectories;
+                            for (let i = 0; i < currentFavs.length; i++) {
+                                favDirs.push(currentFavs[i]);
+                            }
+                            const idx = favDirs.indexOf(currentDir);
+                            if (idx === -1) {
+                                favDirs.push(currentDir);
+                            } else {
+                                favDirs.splice(idx, 1);
+                            }
+                            Persistent.states.wallpaper.favouriteDirectories = favDirs;
+                        }
+
+                        MaterialSymbol {
+                            anchors.centerIn: parent
+                            text: "star"
+                            fill: favFolderBtn.isCurrentFolderFavorited ? 1.0 : 0.0
+                            iconSize: Appearance.font.pixelSize.larger
+                            color: favFolderBtn.isCurrentFolderFavorited ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer2
+                        }
+
+                        StyledToolTip {
+                            text: favFolderBtn.isCurrentFolderFavorited ? Translation.tr("Remove folder from Favourites") : Translation.tr("Add folder to Favourites")
+                        }
+                    }
                 }
 
                 Rectangle {

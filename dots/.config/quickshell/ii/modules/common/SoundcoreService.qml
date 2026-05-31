@@ -32,9 +32,9 @@ Singleton {
 
     Process {
         id: getProc
-        onExited: (code, stdout, stderr) => {
-            if (code === 0) {
-                let trimmed = stdout.trim();
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let trimmed = text.trim();
                 if (trimmed.length > 0) {
                     root.currentMode = trimmed;
                 }

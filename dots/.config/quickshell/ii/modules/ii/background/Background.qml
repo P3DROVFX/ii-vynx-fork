@@ -222,16 +222,13 @@ Scope {
                     visible: bgWallpaperBlurred.visible
                     opacity: wallpaperItem.wallpaperZoomedOut ? 1.0 : 0.0
                     Behavior on opacity {
-                        NumberAnimation {
-                            duration: 375
-                            easing.type: Easing.OutCubic
-                        }
+                        animation: Appearance.animation.elementMove.numberAnimation.createObject(this)
                     }
 
                     Rectangle {
                         anchors.fill: parent
                         color: "#000000"
-                        opacity: 0.35
+                        opacity: 0.24
                     }
                 }
 
@@ -246,10 +243,7 @@ Scope {
                 // Animated clip radius — drives both the border-radius clip and tile visibility
                 property real wallpaperClipRadius: wallpaperZoomedOut ? Appearance.rounding.windowRounding : 0
                 Behavior on wallpaperClipRadius {
-                    NumberAnimation {
-                        duration: 375
-                        easing.type: Easing.OutCubic
-                    }
+                    animation: Appearance.animation.elementMove.numberAnimation.createObject(this)
                 }
 
                 // Wallpaper planes: scale zoom-out.
@@ -295,10 +289,7 @@ Scope {
                         return Math.max(0.85, bgRoot.minSafeScale * 0.85);
                     }
                     Behavior on scaleValue {
-                        NumberAnimation {
-                            duration: 375
-                            easing.type: Easing.OutCubic
-                        }
+                        animation: Appearance.animation.elementMove.numberAnimation.createObject(this)
                     }
 
                     transform: Scale {
@@ -495,6 +486,15 @@ Scope {
                         layer.enabled: true
                     }
 
+                    StyledRectangularShadow {
+                        id: centralWallpaperShadow
+                        target: centralWallpaperClipRect
+                        blur: 32 * wallpaperPlanes.scaleProgress
+                        offset: Qt.vector2d(0, 4 * wallpaperPlanes.scaleProgress)
+                        visible: Config.options.background.zoomOutStyle === 0
+                        opacity: wallpaperPlanes.scaleProgress
+                    }
+
                     Rectangle {
                         id: centralWallpaperClipRect
                         x: Config.options.background.zoomOutStyle !== 1 ? 0 : wallpaperPlanes.parallaxX
@@ -503,6 +503,9 @@ Scope {
                         height: Config.options.background.zoomOutStyle !== 1 ? bgRoot.screen.height : wallpaperPlanes.wallpaperH
                         color: "transparent"
                         radius: Config.options.background.zoomOutStyle === 0 ? wallpaperItem.wallpaperClipRadius : 0
+                        clip: Config.options.background.zoomOutStyle !== 1
+                        border.color: CF.ColorUtils.transparentize(Appearance.colors.colPrimary, 0.35)
+                        border.width: 1.5 * wallpaperPlanes.scaleProgress
 
                         layer.enabled: radius > 0
                         layer.effect: OpacityMask {
