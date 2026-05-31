@@ -120,21 +120,8 @@ MouseArea {
     }
 
     Loader {
-        active: Config.options.bar.resources.expressivePopup
+        active: true
         source: "ExpressiveResourcesPopup.qml"
-        onLoaded: {
-            item.hoverTarget = root;
-            item.activeChanged.connect(() => {
-                if (item.active) {
-                    DockerService.refreshForPopup();
-                }
-            });
-        }
-    }
-
-    Loader {
-        active: !Config.options.bar.resources.expressivePopup
-        source: "ResourcesPopup.qml"
         onLoaded: {
             item.hoverTarget = root;
             item.activeChanged.connect(() => {

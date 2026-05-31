@@ -1227,14 +1227,7 @@ ContentPage {
                 Config.options.bar.resources.showPercentageText = checked;
             }
         }
-        ConfigSwitch {
-            buttonIcon: "fluid_med"
-            text: Translation.tr("Expressive resources popup")
-            checked: Config.options.bar.resources.expressivePopup
-            onCheckedChanged: {
-                Config.options.bar.resources.expressivePopup = checked;
-            }
-        }
+
         ConfigRow {
             ConfigSwitch {
                 buttonIcon: "memory"
