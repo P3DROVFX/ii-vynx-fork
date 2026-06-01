@@ -10,6 +10,21 @@ LazyLoader {
     id: root
     property Item hoverTarget
     default property Item contentItem
+
+    readonly property real screenWidth: root.item ? root.item.screenWidth : 0
+    readonly property real screenHeight: root.item ? root.item.screenHeight : 0
+    readonly property bool isScreenSmall: screenHeight > 0 && screenHeight < 800
+
+    readonly property real layoutScale: {
+        if (screenHeight <= 0 || !root.contentItem) return 1.0;
+        var barSpace = Config.options.bar.vertical ? 0 : Appearance.sizes.barHeight;
+        var maxAllowedHeight = screenHeight - barSpace - Appearance.sizes.elevationMargin * 2 - 40;
+        var naturalHeight = root.contentItem.implicitHeight + 20; // 10 margin * 2
+        if (naturalHeight > maxAllowedHeight) {
+            return Math.max(0.6, maxAllowedHeight / naturalHeight);
+        }
+        return 1.0;
+    }
     property real popupBackgroundMargin: 0
     property int popupRadius: Appearance.rounding.large
     property bool animate: true
@@ -142,8 +157,8 @@ LazyLoader {
             id: popupBackground
             readonly property real margin: 10
 
-            readonly property real targetWidth: (root.contentItem?.implicitWidth ?? 0) + margin * 2
-            readonly property real targetHeight: (root.contentItem?.implicitHeight ?? 0) + margin * 2
+            readonly property real targetWidth: ((root.contentItem?.implicitWidth ?? 0) + margin * 2) * root.layoutScale
+            readonly property real targetHeight: ((root.contentItem?.implicitHeight ?? 0) + margin * 2) * root.layoutScale
 
             property bool isVertical: Config.options.bar.vertical
             property bool isBottom: Config.options.bar.bottom
@@ -211,17 +226,23 @@ LazyLoader {
 
             Item {
                 id: contentContainer
-                anchors.fill: parent
-                anchors.margins: popupBackground.margin
-                clip: true
+                anchors.centerIn: parent
+                width: root.contentItem ? root.contentItem.implicitWidth : 0
+                height: root.contentItem ? root.contentItem.implicitHeight : 0
+
+                scale: root.layoutScale
+                transformOrigin: Item.Center
+                clip: false
 
                 Component.onCompleted: {
                     if (root.contentItem) {
                         root.contentItem.parent = contentContainer;
                         root.contentItem.anchors.centerIn = undefined;
-                        root.contentItem.anchors.top = contentContainer.top;
-                        root.contentItem.anchors.left = contentContainer.left;
-                        root.contentItem.anchors.right = contentContainer.right;
+                        root.contentItem.anchors.top = undefined;
+                        root.contentItem.anchors.bottom = undefined;
+                        root.contentItem.anchors.left = undefined;
+                        root.contentItem.anchors.right = undefined;
+                        root.contentItem.anchors.fill = contentContainer;
 
                         for (let i = 0; i < root.contentItem.children.length; i++) {
                             let child = root.contentItem.children[i];

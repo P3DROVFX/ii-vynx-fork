@@ -145,7 +145,7 @@ Singleton {
     Process {
         id: gpuModelProc
         environment: ({ LANG: "C", LC_ALL: "C" })
-        command: ["bash", "-c", "nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null || (lspci | grep -i 'vga\\|3d' | head -1 | sed 's/.*: //')"]
+        command: ["bash", "-c", "nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null || (lspci | grep -i 'vga\\|3d\\|display' | head -1 | sed 's/.*: //')"]
         running: true
         stdout: StdioCollector {
             id: gpuModelCollector
@@ -179,8 +179,48 @@ Singleton {
         command: ["bash", "-c", 
             "while true; do " + 
             "cpu_freq=$(awk '/cpu MHz/ {s+=$4; n++} END {if(n>0) print int(s/n)}' /proc/cpuinfo); " +
-            "cpu_temp_file=$(grep -l x86_pkg_temp /sys/class/thermal/thermal_zone*/type 2>/dev/null | head -1 | sed 's/type/temp/'); " +
-            "if [ -n \"$cpu_temp_file\" ] && [ -f \"$cpu_temp_file\" ]; then cpu_temp=$(cat \"$cpu_temp_file\"); else cpu_temp=0; fi; " +
+            "cpu_temp=0; " +
+            "for tz in /sys/class/thermal/thermal_zone*; do " +
+            "if [ -f \"$tz/type\" ] && [ -f \"$tz/temp\" ]; then " +
+            "type=$(cat \"$tz/type\" 2>/dev/null); " +
+            "if [ \"$type\" = \"x86_pkg_temp\" ] || [ \"$type\" = \"k10temp\" ] || [ \"$type\" = \"cpu-thermal\" ] || [ \"$type\" = \"cpu_thermal\" ] || [ \"$type\" = \"acpitz\" ]; then " +
+            "cpu_temp=$(cat \"$tz/temp\" 2>/dev/null); " +
+            "if [ -n \"$cpu_temp\" ] && [ \"$cpu_temp\" -gt 0 ]; then break; fi; " +
+            "fi; " +
+            "fi; " +
+            "done; " +
+            "if [ -z \"$cpu_temp\" ] || [ \"$cpu_temp\" -eq 0 ]; then " +
+            "for hw in /sys/class/hwmon/hwmon*; do " +
+            "if [ -f \"$hw/name\" ]; then " +
+            "name=$(cat \"$hw/name\" 2>/dev/null); " +
+            "if [ \"$name\" = \"k10temp\" ] || [ \"$name\" = \"zenpower\" ] || [ \"$name\" = \"coretemp\" ]; then " +
+            "for t_input in \"$hw\"/temp*_input; do " +
+            "if [ -f \"$t_input\" ]; then " +
+            "temp_val=$(cat \"$t_input\" 2>/dev/null); " +
+            "if [ -n \"$temp_val\" ] && [ \"$temp_val\" -gt 0 ]; then " +
+            "cpu_temp=\"$temp_val\"; " +
+            "break 2; " +
+            "fi; " +
+            "fi; " +
+            "done; " +
+            "fi; " +
+            "fi; " +
+            "done; " +
+            "fi; " +
+            "if [ -z \"$cpu_temp\" ] || [ \"$cpu_temp\" -eq 0 ]; then " +
+            "for tz in /sys/class/thermal/thermal_zone*; do " +
+            "if [ -f \"$tz/type\" ] && [ -f \"$tz/temp\" ]; then " +
+            "type=$(cat \"$tz/type\" 2>/dev/null); " +
+            "if [ \"$type\" = \"TCPU\" ] || [ \"$type\" = \"cpu\" ]; then " +
+            "temp_val=$(cat \"$tz/temp\" 2>/dev/null); " +
+            "if [ -n \"$temp_val\" ] && [ \"$temp_val\" -gt 0 ]; then " +
+            "cpu_temp=\"$temp_val\"; " +
+            "break; " +
+            "fi; " +
+            "fi; " +
+            "fi; " +
+            "done; " +
+            "fi; " +
             "gpu_stats=\"\"; " +
             "if command -v nvidia-smi >/dev/null 2>&1; then " +
             "gpu_stats=$(nvidia-smi --query-gpu=utilization.gpu,power.draw,temperature.gpu --format=csv,noheader,nounits 2>/dev/null); " +

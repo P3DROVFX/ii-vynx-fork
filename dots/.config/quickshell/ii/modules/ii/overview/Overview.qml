@@ -199,8 +199,9 @@ Scope {
                         property real slideOpacity: 0.0
 
                         opacity: slideOpacity
-                        transform: Translate { y: searchWidgetWrapper.slideY }
-
+                        transform: Translate {
+                            y: searchWidgetWrapper.slideY
+                        }
 
                         Timer {
                             id: slideInStartTimer

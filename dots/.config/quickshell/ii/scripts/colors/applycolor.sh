@@ -33,13 +33,42 @@ apply_kitty() {
     echo "Template file not found for Kitty theme. Skipping that."
     return
   fi
-  # Copy template
   mkdir -p "$STATE_DIR"/user/generated/terminal
-  cp "$SCRIPT_DIR/terminal/kitty-theme.conf" "$STATE_DIR"/user/generated/terminal/kitty-theme.conf
-  # Apply colors
-  for i in "${!colorlist[@]}"; do
-    sed -i "s/${colorlist[$i]} #/${colorvalues[$i]#\#}/g" "$STATE_DIR"/user/generated/terminal/kitty-theme.conf
-  done
+  # Apply colors using Python for robust literal string replacement (no regex or sed shell escaping issues)
+  python3 -c '
+import sys
+import os
+scss_path, template_path, output_path = sys.argv[1:4]
+vars_dict = {}
+try:
+    with open(scss_path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line.startswith("$") or ":" not in line:
+                continue
+            name, val = line.split(":", 1)
+            name = name.strip()
+            val = val.strip().rstrip(";").lstrip("#")
+            vars_dict[name + " #"] = val
+except Exception as e:
+    print(f"Error reading colors scss: {e}", file=sys.stderr)
+    sys.exit(1)
+
+if len(vars_dict) < 10:
+    print("Error: Too few colors generated. Aborting Kitty theme update.", file=sys.stderr)
+    sys.exit(1)
+
+with open(template_path, "r") as f:
+    content = f.read()
+
+for name, val in vars_dict.items():
+    content = content.replace(name, val)
+
+tmp_path = output_path + ".tmp"
+with open(tmp_path, "w") as f:
+    f.write(content)
+os.rename(tmp_path, output_path)
+' "$STATE_DIR/user/generated/material_colors.scss" "$SCRIPT_DIR/terminal/kitty-theme.conf" "$STATE_DIR/user/generated/terminal/kitty-theme.conf"
 
   # Ensure current-theme.conf is a symlink to our generated kitty-theme.conf
   local kitty_theme_dir="$XDG_CONFIG_HOME/kitty"
@@ -66,15 +95,44 @@ apply_anyterm() {
     echo "Template file not found for Terminal. Skipping that."
     return
   fi
-  # Copy template
   mkdir -p "$STATE_DIR"/user/generated/terminal
-  cp "$SCRIPT_DIR/terminal/sequences.txt" "$STATE_DIR"/user/generated/terminal/sequences.txt
-  # Apply colors
-  for i in "${!colorlist[@]}"; do
-    sed -i "s/${colorlist[$i]} #/${colorvalues[$i]#\#}/g" "$STATE_DIR"/user/generated/terminal/sequences.txt
-  done
+  # Apply colors using Python for robust literal string replacement (no regex or sed shell escaping issues)
+  python3 -c '
+import sys
+import os
+scss_path, template_path, output_path, alpha = sys.argv[1:5]
+vars_dict = {}
+try:
+    with open(scss_path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line.startswith("$") or ":" not in line:
+                continue
+            name, val = line.split(":", 1)
+            name = name.strip()
+            val = val.strip().rstrip(";").lstrip("#")
+            vars_dict[name + " #"] = val
+except Exception as e:
+    print(f"Error reading colors scss: {e}", file=sys.stderr)
+    sys.exit(1)
 
-  sed -i "s/\$alpha/$term_alpha/g" "$STATE_DIR/user/generated/terminal/sequences.txt"
+if len(vars_dict) < 10:
+    print("Error: Too few colors generated. Aborting sequences update.", file=sys.stderr)
+    sys.exit(1)
+
+with open(template_path, "r") as f:
+    content = f.read()
+
+for name, val in vars_dict.items():
+    content = content.replace(name, val)
+
+content = content.replace("$alpha", alpha)
+
+tmp_path = output_path + ".tmp"
+with open(tmp_path, "w") as f:
+    f.write(content)
+os.rename(tmp_path, output_path)
+' "$STATE_DIR/user/generated/material_colors.scss" "$SCRIPT_DIR/terminal/sequences.txt" "$STATE_DIR/user/generated/terminal/sequences.txt" "$term_alpha"
 
   for file in /dev/pts/*; do
     if [[ $file =~ ^/dev/pts/[0-9]+$ ]]; then

@@ -109,7 +109,7 @@ Scope {
                 },
                 "out": {
                     default: 1,
-                    zoomed: 1.04
+                    zoomed: 1.01
                 }
             }
 

@@ -22,8 +22,9 @@ StyledPopup {
     }
 
     function cleanGpu(model) {
-        if (!model) return "--";
-        
+        if (!model)
+            return "--";
+
         // Handle AMD GPU lspci format (e.g., Advanced Micro Devices, Inc. [AMD/ATI] Cezanne [Radeon Vega Series / Radeon Vega Mobile Series] (rev c8))
         if (/Advanced Micro Devices|AMD|ATI/i.test(model)) {
             let cleaned = model.replace(/\(rev\s+[a-f0-9]+\)/gi, "").trim();
@@ -34,15 +35,23 @@ StyledPopup {
                     lastBracket = lastBracket.split("/")[0].trim();
                 }
                 if (lastBracket && lastBracket.toLowerCase() !== "amd/ati") {
-                    return lastBracket.replace(/NVIDIA|GeForce|AMD|Radeon|Laptop GPU|Graphics/gi, "").replace(/\s+/g, " ").trim();
+                    let stripped = lastBracket.replace(/NVIDIA|GeForce|AMD|Radeon|Laptop GPU|Graphics/gi, "").replace(/\s+/g, " ").trim();
+                    if (stripped.length > 0)
+                        return stripped;
+                    return lastBracket;
                 }
             }
             cleaned = cleaned.replace(/Advanced Micro Devices, Inc\.\s*\[AMD\/ATI\]/gi, "").trim();
-            cleaned = cleaned.replace(/NVIDIA|GeForce|AMD|Radeon|Laptop GPU|Graphics/gi, "").replace(/\s+/g, " ").trim();
+            let stripped = cleaned.replace(/NVIDIA|GeForce|AMD|Radeon|Laptop GPU|Graphics/gi, "").replace(/\s+/g, " ").trim();
+            if (stripped.length > 0)
+                return stripped;
             return cleaned;
         }
 
-        return model.replace(/NVIDIA|GeForce|AMD|Radeon|Laptop GPU|Graphics/gi, "").replace(/\s+/g, " ").trim();
+        let stripped = model.replace(/NVIDIA|GeForce|AMD|Radeon|Laptop GPU|Graphics/gi, "").replace(/\s+/g, " ").trim();
+        if (stripped.length > 0)
+            return stripped;
+        return model;
     }
 
     contentItem: ColumnLayout {
