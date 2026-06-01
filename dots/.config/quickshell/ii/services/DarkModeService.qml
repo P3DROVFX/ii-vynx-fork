@@ -8,6 +8,14 @@ Singleton {
     id: root
 
     property bool automatic: Config.options?.light?.darkMode?.automatic ?? false
+    property string from: Config.options?.light?.darkMode?.from ?? "18:00"
+    property string to: Config.options?.light?.darkMode?.to ?? "06:00"
+
+    property int fromHour: Number(from.split(":")[0])
+    property int fromMinute: Number(from.split(":")[1])
+    property int toHour: Number(to.split(":")[0])
+    property int toMinute: Number(to.split(":")[1])
+
     property int clockHour: DateTime.clock.hours
     property int clockMinute: DateTime.clock.minutes
 
@@ -17,7 +25,7 @@ Singleton {
         }
     }
 
-    onClockHourChanged: {
+    onClockMinuteChanged: {
         if (automatic) {
             checkTime();
         }
@@ -29,10 +37,24 @@ Singleton {
         Config.options.light.darkMode.automatic = false;
     }
 
+    function inBetween(t, from, to) {
+        if (from < to) {
+            return (t >= from && t < to);
+        } else {
+            // Wrapped around midnight
+            return (t >= from || t < to);
+        }
+    }
+
     function checkTime() {
         if (!automatic)
             return;
-        if (clockHour >= 18 || clockHour < 6) {
+            
+        const t = clockHour * 60 + clockMinute;
+        const fromMinutes = fromHour * 60 + fromMinute;
+        const toMinutes = toHour * 60 + toMinute;
+
+        if (inBetween(t, fromMinutes, toMinutes)) {
             enableDarkMode();
         } else {
             disableDarkMode();

@@ -67,12 +67,20 @@ Singleton {
         path: root.filePath
         watchChanges: true
         blockWrites: root.blockWrites
-        onFileChanged: fileReloadTimer.restart()
-        onAdapterUpdated: fileWriteTimer.restart()
+        onFileChanged: {
+            if (!root.ready)
+                return;
+            fileReloadTimer.restart();
+        }
+        onAdapterUpdated: {
+            if (!root.ready)
+                return;
+            fileWriteTimer.restart();
+        }
         onLoaded: root.ready = true
         onLoadFailed: error => {
             if (error == FileViewError.FileNotFound) {
-                writeAdapter();
+                root.ready = true;
             }
         }
 
@@ -179,6 +187,7 @@ Singleton {
                     property string accentColor: ""
                 }
                 property list<string> customColorSchemes: []
+                property bool colorfulScrollbar: false
             }
 
             property JsonObject audio: JsonObject {
@@ -700,7 +709,9 @@ Singleton {
 
             property JsonObject light: JsonObject {
                 property JsonObject darkMode: JsonObject {
-                    property bool automatic: false
+                    property bool automatic: true
+                    property string from: "18:00" // Format: "HH:mm", 24-hour time
+                    property string to: "06:00"   // Format: "HH:mm", 24-hour time
                 }
                 property JsonObject night: JsonObject {
                     property bool automatic: true

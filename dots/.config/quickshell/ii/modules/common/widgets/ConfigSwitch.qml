@@ -48,6 +48,7 @@ RippleButton {
             font.pixelSize: root.font.pixelSize
             color: Appearance.colors.colOnSecondaryContainer
             opacity: root.enabled ? 1 : 0.4
+            wrapMode: Text.WordWrap
         }
         StyledSwitch {
             id: switchWidget

@@ -49,6 +49,7 @@ RippleButton {
                 visible: root.expanded || implicitWidth > 0
                 reveal: root.expanded
                 implicitWidth: reveal ? (buttonText.implicitWidth + root.elementSpacing + contentRowLayout.horizontalMargins) : 0
+                implicitHeight: buttonText.implicitHeight
                 StyledText {
                     id: buttonText
                     anchors {

@@ -18,7 +18,6 @@ Item {
     width: implicitWidth
     height: implicitHeight
 
-    // Vertical
     Loader {
         id: colLoader
         active: root.vertical
@@ -28,9 +27,8 @@ Item {
             id: layoutVert
             spacing: 2
             
-            // Helper properties for direct formatting
             readonly property bool is12h: root.is12h
-            readonly property string hours: Qt.formatDateTime(DateTime.clock.date, is12h ? "hh" : "HH")
+            readonly property string hours: is12h ? ("0" + (DateTime.clock.date.getHours() % 12 || 12)).slice(-2) : Qt.formatDateTime(DateTime.clock.date, "HH")
             readonly property string minutes: Qt.formatDateTime(DateTime.clock.date, "mm")
             readonly property string ampm: is12h ? Qt.formatDateTime(DateTime.clock.date, Config.options.time.format.includes("AP") ? "AP" : "ap").trim() : ""
 
@@ -67,7 +65,7 @@ Item {
             }
 
             Rectangle {
-                visible: root.showDate && DateTime.dayNameShort !== ""
+                visible: !layoutVert.is12h && root.showDate && DateTime.dayNameShort !== ""
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 2
                 implicitWidth: Appearance.sizes.verticalBarWidth - 8
@@ -84,7 +82,7 @@ Item {
             }
 
             MaterialShape {
-                visible: layoutVert.showAMPM && !root.showDate
+                visible: layoutVert.is12h && layoutVert.showAMPM
                 Layout.alignment: Qt.AlignHCenter
                 shapeString: "Cookie12Sided"
                 color: Appearance.colors.colTertiaryContainer
@@ -98,7 +96,6 @@ Item {
                 }
             }
 
-            // LocalSend files attached chip
             Rectangle {
                 id: attachedChipVert
                 visible: LocalSend.droppedFiles.length > 0
@@ -138,7 +135,6 @@ Item {
         }
     }
 
-    // Horizontal
     Loader {
         id: rowLoader
         active: !root.vertical
@@ -149,7 +145,7 @@ Item {
             spacing: 4
             
             readonly property bool is12h: root.is12h
-            readonly property string hours: Qt.formatDateTime(DateTime.clock.date, is12h ? "hh" : "HH")
+            readonly property string hours: is12h ? ("0" + (DateTime.clock.date.getHours() % 12 || 12)).slice(-2) : Qt.formatDateTime(DateTime.clock.date, "HH")
             readonly property string minutes: Qt.formatDateTime(DateTime.clock.date, "mm")
             readonly property string ampm: is12h ? Qt.formatDateTime(DateTime.clock.date, Config.options.time.format.includes("AP") ? "AP" : "ap").trim() : ""
 
@@ -192,7 +188,7 @@ Item {
             }
 
             MaterialShape {
-                visible: layoutHoriz.showAMPM
+                visible: layoutHoriz.is12h && layoutHoriz.showAMPM
                 shapeString: "Cookie12Sided"
                 color: Appearance.colors.colTertiaryContainer
                 implicitSize: Appearance.sizes.baseBarHeight - 16
@@ -205,7 +201,22 @@ Item {
                 }
             }
 
-            // LocalSend files attached chip
+            Rectangle {
+                visible: !layoutHoriz.is12h && root.showDate && DateTime.dayNameShort !== ""
+                implicitWidth: 32
+                implicitHeight: Appearance.sizes.baseBarHeight - 16
+                color: Appearance.colors.colTertiaryContainer
+                radius: Appearance.rounding.small
+                Layout.alignment: Qt.AlignVCenter
+                StyledText {
+                    anchors.centerIn: parent
+                    text: DateTime.dayNameShort.toUpperCase()
+                    font.pixelSize: 9
+                    font.weight: Font.Black
+                    color: Appearance.colors.colOnTertiaryContainer
+                }
+            }
+
             Rectangle {
                 id: attachedChipHoriz
                 visible: LocalSend.droppedFiles.length > 0
@@ -266,11 +277,10 @@ Item {
         }
     }
 
-    // Drag & Drop visual overlay feedback (Layout-aware and fully responsive)
     Rectangle {
         id: dropOverlay
         anchors.fill: parent
-        radius: Appearance.rounding.large // Match expressive clock pill rounding
+        radius: Appearance.rounding.large
         color: Appearance.colors.colPrimaryContainer
         border.width: 1.5
         border.color: Appearance.colors.colPrimary

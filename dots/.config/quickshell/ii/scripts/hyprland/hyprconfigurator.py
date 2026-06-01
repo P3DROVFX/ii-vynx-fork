@@ -1,102 +1,66 @@
-#!/usr/bin/env -S\_/bin/sh\_-c\_"source\_\$(eval\_echo\_\$ILLOGICAL_IMPULSE_VIRTUAL_ENV)/bin/activate&&exec\_python\_-E\_"\$0"\_"\$@""
-import argparse
-import re
-import os
-import tempfile
+#!/usr/bin/env -S /bin/sh -c "source \$(eval echo \$ILLOGICAL_IMPULSE_VIRTUAL_ENV)/bin/activate&&exec python -E \"\$0\" \"\$@\""
+import argparse, re, os, tempfile
+
+def format_value(value):
+    if value in ('true', 'false'): return value
+    try:
+        float(value)
+        return value
+    except ValueError: return f'"{value}"'
+
+def build_nested_structure(key_parts, value):
+    if len(key_parts) == 1: return f'{key_parts[0]}={format_value(value)}'
+    return f'{key_parts[0]}={{{build_nested_structure(key_parts[1:], value)}}}'
+
+def generate_config_line(key, value):
+    return f'hl.config({{{build_nested_structure(key.split(":"), value)}}})\n'
 
 def edit_hyprland_config(file_path, set_args, reset_args):
-    try:
-        with open(file_path, 'r') as file:
-            lines = file.readlines()
-    except FileNotFoundError:
-        print(f"Error: File '{file_path}' not found.")
-        return
-    
+    lines = open(file_path, 'r').readlines() if os.path.exists(file_path) else []
     set_dict = {k: v for k, v in set_args} if set_args else {}
     reset_set = set(reset_args) if reset_args else set()
-    
-    new_lines = []
-    found_keys = set()
-    
-    patterns = {}
+    new_lines, found_keys, patterns = [], set(), {}
+
     for k in list(set_dict.keys()) + list(reset_set):
-        patterns[k] = re.compile(rf'^\s*{re.escape(k)}\s*=')
-        
+        parts = k.split(':')
+        if len(parts) > 1:
+            patterns[k] = re.compile(rf'^\s*hl\.config\(\{{\s*{"\{".join([rf"\s*{re.escape(p)}\s*=" for p in parts])}')
+        else:
+            patterns[k] = re.compile(rf'^\s*hl\.config\(\{{\s*{re.escape(parts[0])}\s*=')
+
     for line in lines:
+        if any(patterns[k].match(line) for k in reset_set): continue
         matched = False
-        
-        # Check if line matches a key to be reset
-        for key in reset_set:
-            if patterns[key].match(line):
+        for k, v in set_dict.items():
+            if patterns[k].match(line):
+                new_lines.append(generate_config_line(k, v))
+                found_keys.add(k)
                 matched = True
                 break
-                
-        if matched:
-            continue
-            
-        # Check if line matches a key to be set
-        for key, value in set_dict.items():
-            if patterns[key].match(line):
-                new_line = f"{key} = {value}\n"
-                new_lines.append(new_line)
-                found_keys.add(key)
-                matched = True
-                break
-                
-        if matched:
-            continue
-            
-        new_lines.append(line)
-        
-    if set_dict:
-        for key, value in set_dict.items():
-            if key not in found_keys:
-                if new_lines and not new_lines[-1].endswith('\n'):
-                    new_lines[-1] += '\n'
-                new_lines.append(f"{key} = {value}\n")
-                
-    dir_name = os.path.dirname(os.path.abspath(file_path))
-    temp_path = None
-    try:
-        with tempfile.NamedTemporaryFile(mode='w', dir=dir_name, delete=False) as temp_file:
-            temp_file.writelines(new_lines)
-            temp_path = temp_file.name
-        os.chmod(temp_path, os.stat(file_path).st_mode)
-        os.replace(temp_path, file_path)
-    except Exception as e:
-        if temp_path and os.path.exists(temp_path):
-            os.remove(temp_path)
-        print(f"Error saving file: {e}")
-        return
-        
-    for key in reset_set:
-        print(f"Removed '{key}' from '{file_path}'")
-    for key, value in set_dict.items():
-        print(f"Updated '{file_path}' with {key} = {value}")
+        if not matched: new_lines.append(line)
+
+    for k, v in set_dict.items():
+        if k not in found_keys:
+            if new_lines and not new_lines[-1].endswith('\n'): new_lines[-1] += '\n'
+            new_lines.append(generate_config_line(k, v))
+
+    os.makedirs(os.path.dirname(os.path.abspath(file_path)), exist_ok=True)
+    with tempfile.NamedTemporaryFile(mode='w', dir=os.path.dirname(os.path.abspath(file_path)), delete=False) as tmp:
+        tmp.writelines(new_lines)
+        tmp_name = tmp.name
+    if os.path.exists(file_path): os.chmod(tmp_name, os.stat(file_path).st_mode)
+    else: os.chmod(tmp_name, 0o644)
+    os.replace(tmp_name, file_path)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Edit a Hyprland config file.")
-    parser.add_argument("--file", default="~/.config/hypr/hyprland.conf", help="Path to the Hyprland config file (default: ~/.config/hypr/hyprland.conf).")
-    
-    parser.add_argument("--set", nargs=2, action="append", metavar=("KEY", "VALUE"), help="Set a configuration key to a value.")
-    parser.add_argument("--reset", action="append", metavar="KEY", help="Remove a configuration key.")
-    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--file", default="~/.config/hypr/hyprland.conf")
+    parser.add_argument("--set", nargs=2, action="append")
+    parser.add_argument("--reset", action="append")
     args = parser.parse_args()
-    
-    file_path = os.path.expanduser(args.file)
-    
-    raw_set_args = args.set or []
-    reset_args = args.reset or []
-    
-    set_args = []
-    for key, value in raw_set_args:
-        if value == "[[EMPTY]]":
-            reset_args.append(key)
-        else:
-            set_args.append((key, value))
-    
-    if not set_args and not reset_args:
-        print("Error: Must specify at least one key to set or reset.")
-    else:
-        edit_hyprland_config(file_path, set_args, reset_args)
-        
+    f = os.path.expanduser(args.file)
+    s, r = [], []
+    for k, v in (args.set or []):
+        if v == "[[EMPTY]]": r.append(k)
+        else: s.append((k, v))
+    if s or r or (args.reset): edit_hyprland_config(f, s, r + (args.reset or []))

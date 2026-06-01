@@ -198,7 +198,7 @@ Item {
 
                             DropArea { // Workspace drop
                                 anchors.fill: parent
-                                onEntered: {
+                                onEntered: (drag) => {
                                     root.dragDropType = 0
                                     root.draggingTargetWorkspace = workspace.workspaceValue
                                     if (root.draggingFromWorkspace == root.draggingTargetWorkspace) return;
@@ -406,7 +406,7 @@ Item {
 
                     DropArea { // Window drop
                         anchors.fill:  parent 
-                        onEntered: {
+                        onEntered: (drag) => {
                             parent.hovering = true
                             root.dragDropType = 1 // window
                             root.draggingTargetWindowAdress = windowData?.address
@@ -489,12 +489,13 @@ Item {
                                 window.pressed = false
                                 window.Drag.active = false
                                 if (targetWindowAdress !== "" && targetWindowAdress !== windowData?.address) {
-                                    // FIXME: we dont use the plugin anymore, so we have to somehow clear these or find a way to
-                                    // have the same functionality without/with another plugin
-                                    if (root.draggingTargetWorkspace === root.draggingFromWorkspace) { // plugin directly supports same workspace switch
-                                        Hyprland.dispatch(`layoutmsg swapaddrdir ${targetWindowAdress} ${root.draggingDirection} ${window.windowData?.address} true`)
+                                    if (root.draggingTargetWorkspace === root.draggingFromWorkspace) { // direct same workspace swap
+                                        Hyprland.dispatch(`hl.dsp.window.swap({ target = "address:${targetWindowAdress}", window = "address:${window.windowData?.address}" })`)
                                     } else { // different workspace
-                                        Hyprland.dispatch(`hl.dsp.window.move({ workspace = ${targetWorkspace}, follow = false, window = "address:${window.windowData?.address}" })`)
+                                        Hyprland.dispatch(`hl.dsp.window.move({ workspace = ${targetWorkspace}, follow = false, window = "address:${root.draggingFromWindowAddress}" })`)
+                                        Qt.callLater(() => {
+                                            Hyprland.dispatch(`hl.dsp.window.swap({ target = "address:${targetWindowAdress}", window = "address:${window.windowData?.address}" })`)
+                                        })
                                     }
                                 }
                                 Qt.callLater(() => {
@@ -509,25 +510,8 @@ Item {
                             if (!windowData) return;
 
                             if (event.button === Qt.LeftButton) {
-                                const sameWorkspaceWithTarget = windowData?.workspace.id === root.activeWindow?.workspace?.id
-
-                                if (!root.hyprscrollingEnabled) {
-                                    Hyprland.dispatch(`hl.dsp.focus({window = "address:${windowData.address}"})`)
-                                    GlobalStates.overviewOpen = false; 
-                                    return
-                                }
-
-                                if (sameWorkspaceWithTarget) {
-                                    Hyprland.dispatch(`layoutmsg focusaddr ${windowData.address}`)
-                                    GlobalStates.overviewOpen = false;
-                                } else {
-                                    Hyprland.dispatch(`hl.dsp.focus({window = "address:${windowData.address}"})`)
-                                    Qt.callLater(() => {
-                                        Hyprland.dispatch(`layoutmsg focusaddr ${windowData.address}`);
-                                        GlobalStates.overviewOpen = false;
-                                    });
-
-                                }
+                                Hyprland.dispatch(`hl.dsp.focus({window = "address:${windowData.address}"})`)
+                                GlobalStates.overviewOpen = false;
                                 event.accepted = true
                             } else if (event.button === Qt.MiddleButton) {
                                 Hyprland.dispatch(`hl.dsp.window.close({window = "address:${windowData.address}"})`)

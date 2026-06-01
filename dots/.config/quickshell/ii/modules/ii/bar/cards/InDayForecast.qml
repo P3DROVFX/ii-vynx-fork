@@ -106,7 +106,6 @@ SectionCard {
                     }
                 }
             }
-
             // Beautiful spacer at the end of scroll to maintain margins symmetry
             Item {
                 Layout.preferredWidth: inDayForecastCard.margins - rowLayout.spacing

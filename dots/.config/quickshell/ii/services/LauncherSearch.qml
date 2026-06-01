@@ -583,7 +583,7 @@ Singleton {
                                 if (activeWsId) {
                                     Hyprland.dispatch(`hl.dsp.window.move({ workspace = ${activeWsId}, follow = false, window = "address:${w.address}" })`);
                                 } else {
-                                    Hyprland.dispatch(`movetoworkspacesilent e+0,address:${w.address}`);
+                                    Hyprland.dispatch(`hl.dsp.window.move({ workspace = "e+0", follow = false, window = "address:${w.address}" })`);
                                 }
                             }
                         }), resultComp.createObject(null, {
