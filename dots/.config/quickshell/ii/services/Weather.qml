@@ -148,12 +148,12 @@ Singleton {
         temp.city = cityName;
         
         if (root.useUSCS) {
-            temp.wind = Math.round(current.wind_speed_10m) + " mph";
-            temp.precip = current.precipitation.toFixed(2) + " in";
+            temp.wind = Math.round(current.wind_speed_10m * 0.621371) + " mph";
+            temp.precip = (current.precipitation * 0.0393701).toFixed(2) + " in";
             temp.visib = (current.visibility / 1609.34).toFixed(1) + " mi";
             temp.press = Math.round(current.pressure_msl) + " hPa"; 
-            temp.temp = Math.round(current.temperature_2m) + "°F";
-            temp.tempFeelsLike = Math.round(current.apparent_temperature) + "°F";
+            temp.temp = Math.round(current.temperature_2m * 9 / 5 + 32) + "°F";
+            temp.tempFeelsLike = Math.round(current.apparent_temperature * 9 / 5 + 32) + "°F";
         } else {
             temp.wind = Math.round(current.wind_speed_10m) + " km/h";
             temp.precip = current.precipitation.toFixed(1) + " mm";

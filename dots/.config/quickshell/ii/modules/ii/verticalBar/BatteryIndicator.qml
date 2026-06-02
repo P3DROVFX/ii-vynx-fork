@@ -208,20 +208,20 @@ MouseArea {
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
                         anchors.left: parent.left
+                        anchors.leftMargin: batteryContainer.width * (1.5 / 28)
 
                         readonly property real clampedPct: Math.max(0, Math.min(1, root.percentage))
-                        width: parent.width * clampedPct
+                        width: (batteryContainer.width * (22 / 28)) * clampedPct
                         z: 0
 
                         Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.left: parent.left
-                            anchors.leftMargin: 3
 
-                            height: parent.height - 6
-                            width: (parent.width * (24 / 28)) - 6
+                            height: batteryContainer.height * (10 / 13)
+                            width: batteryContainer.width * (22 / 28)
 
-                            radius: 1.5
+                            radius: batteryContainer.height * (2 / 13)
 
                             color: {
                                 if (root.isCritical && !root.effectivelyCharging)
