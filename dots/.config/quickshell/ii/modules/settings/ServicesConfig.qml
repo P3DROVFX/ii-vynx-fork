@@ -12,6 +12,37 @@ ContentPage {
     property bool register: parent.register ?? false
     forceWidth: true
 
+    // Translator languages model
+    property list<string> languages: ["auto"]
+    property list<var> languagesModel: [{ "displayName": "auto", "value": "auto" }]
+
+    Process {
+        id: getLanguagesProc
+        command: ["trans", "-list-languages", "-no-bidi"]
+        property list<string> bufferList: ["auto"]
+        running: true
+        stdout: SplitParser {
+            onRead: data => {
+                getLanguagesProc.bufferList.push(data.trim());
+            }
+        }
+        onExited: (exitCode, exitStatus) => {
+            let langs = getLanguagesProc.bufferList.filter(lang => lang.trim().length > 0 && lang !== "auto").sort((a, b) => a.localeCompare(b));
+            langs.unshift("auto");
+            page.languages = langs;
+            
+            let modelList = [];
+            for (let i = 0; i < langs.length; i++) {
+                modelList.push({
+                    "displayName": langs[i],
+                    "value": langs[i]
+                });
+            }
+            page.languagesModel = modelList;
+            getLanguagesProc.bufferList = [];
+        }
+    }
+
     ContentSection {
         icon: "neurology"
         title: Translation.tr("AI")
@@ -642,6 +673,49 @@ ContentPage {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    ContentSection {
+        icon: "translate"
+        title: Translation.tr("Translator Defaults")
+
+        ContentSubsection {
+            title: Translation.tr("Default Source Language")
+            tooltip: Translation.tr("Select the default source language for both the Search Launcher and the Sidebar Translator panels.")
+
+            StyledComboBox {
+                id: defaultSourceLangSelector
+                buttonIcon: "language"
+                textRole: "displayName"
+                model: page.languagesModel
+                currentIndex: {
+                    const index = model.findIndex(item => item.value === Config.options.language.translator.defaultSourceLanguage);
+                    return index !== -1 ? index : 0;
+                }
+                onActivated: index => {
+                    Config.options.language.translator.defaultSourceLanguage = model[index].value;
+                }
+            }
+        }
+
+        ContentSubsection {
+            title: Translation.tr("Default Target Language")
+            tooltip: Translation.tr("Select the default target language for both the Search Launcher and the Sidebar Translator panels.")
+
+            StyledComboBox {
+                id: defaultTargetLangSelector
+                buttonIcon: "translate"
+                textRole: "displayName"
+                model: page.languagesModel
+                currentIndex: {
+                    const index = model.findIndex(item => item.value === Config.options.language.translator.defaultTargetLanguage);
+                    return index !== -1 ? index : 0;
+                }
+                onActivated: index => {
+                    Config.options.language.translator.defaultTargetLanguage = model[index].value;
                 }
             }
         }

@@ -17,6 +17,13 @@ RowLayout {
     property alias searchInput: searchInput
     property string searchingText
     property int currentResultIndex: 0
+    property bool isTranslatorPanelFocused: false
+
+    onSearchingTextChanged: {
+        if (searchInput.text !== searchingText) {
+            searchInput.text = searchingText;
+        }
+    }
 
     signal navigateUp()
     signal navigateDown()
@@ -30,7 +37,7 @@ RowLayout {
         searchInput.forceActiveFocus();
     }
 
-    enum SearchPrefixType { Action, App, Clipboard, Emojis, Math, ShellCommand, WebSearch, WindowSearch, FileBrowser, DefaultSearch }
+    enum SearchPrefixType { Action, App, Clipboard, Emojis, Math, ShellCommand, WebSearch, WindowSearch, FileBrowser, Translator, DefaultSearch }
 
     property var searchPrefixType: {
         if (root.searchingText.startsWith(Config.options.search.prefix.action)) return SearchBar.SearchPrefixType.Action;
@@ -42,6 +49,7 @@ RowLayout {
         if (root.searchingText.startsWith(Config.options.search.prefix.webSearch)) return SearchBar.SearchPrefixType.WebSearch;
         if (root.searchingText.startsWith(Config.options.search.prefix.windowSearch)) return SearchBar.SearchPrefixType.WindowSearch;
         if (root.searchingText.startsWith(Config.options.search.prefix.fileBrowser)) return SearchBar.SearchPrefixType.FileBrowser;
+        if (root.searchingText.startsWith(Config.options.search.prefix.translator)) return SearchBar.SearchPrefixType.Translator;
         return SearchBar.SearchPrefixType.DefaultSearch;
     }
     
@@ -126,6 +134,7 @@ RowLayout {
             case SearchBar.SearchPrefixType.WebSearch: return MaterialShape.Shape.SoftBurst;
             case SearchBar.SearchPrefixType.WindowSearch: return MaterialShape.Shape.Arch;
             case SearchBar.SearchPrefixType.FileBrowser: return MaterialShape.Shape.Square;
+            case SearchBar.SearchPrefixType.Translator: return MaterialShape.Shape.Cookie6Sided;
             default: return MaterialShape.Shape.Cookie7Sided;
         }
         text: switch (searchIcon._prefixType) {
@@ -138,6 +147,7 @@ RowLayout {
             case SearchBar.SearchPrefixType.WebSearch: return "travel_explore";
             case SearchBar.SearchPrefixType.WindowSearch: return "select_window";
             case SearchBar.SearchPrefixType.FileBrowser: return "folder_open";
+            case SearchBar.SearchPrefixType.Translator: return "translate";
             case SearchBar.SearchPrefixType.DefaultSearch: return "search";
             default: return "search";
         }
@@ -196,15 +206,18 @@ RowLayout {
                 return;
             }
             if (root.clipboardMode) {
-                if (event.key === Qt.Key_Left) {
-                    root.navigateLeft();
-                    event.accepted = true;
-                    return;
-                } else if (event.key === Qt.Key_Right) {
-                    root.navigateRight();
-                    event.accepted = true;
-                    return;
-                } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                if (root.searchPrefixType !== SearchBar.SearchPrefixType.Translator || root.isTranslatorPanelFocused) {
+                    if (event.key === Qt.Key_Left) {
+                        root.navigateLeft();
+                        event.accepted = true;
+                        return;
+                    } else if (event.key === Qt.Key_Right) {
+                        root.navigateRight();
+                        event.accepted = true;
+                        return;
+                    }
+                }
+                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
                     root.activate();
                     event.accepted = true;
                     return;

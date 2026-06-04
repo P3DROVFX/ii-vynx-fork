@@ -34,7 +34,8 @@ Item {
     property string searchingText: LauncherSearch.query
     readonly property bool isClipboardMode: root.searchingText.startsWith(Config.options.search.prefix.clipboard)
     readonly property bool isBluetoothMode: root.searchingText.startsWith(Config.options.search.prefix.bluetooth)
-    readonly property bool isAnySpecialMode: root.isClipboardMode || root.isBluetoothMode
+    readonly property bool isTranslatorMode: root.searchingText.startsWith(Config.options.search.prefix.translator)
+    readonly property bool isAnySpecialMode: root.isClipboardMode || root.isBluetoothMode || root.isTranslatorMode
     readonly property bool alwaysListAppsMode: Config.options.search.alwaysListApps && !root.isAnySpecialMode
     property bool showResults: searchingText != "" || isAnySpecialMode || alwaysListAppsMode || (searchingText === "" && LauncherSearch.results.length > 0)
     property string overviewPosition: Config.options.overview.position
@@ -68,17 +69,21 @@ Item {
     implicitWidth: {
         if (root.isBluetoothMode) return (Config.options.search.clipboard.panelWidth ?? 860) + Appearance.sizes.elevationMargin * 2;
         if (root.isClipboardMode) return (Config.options.search.clipboard.panelWidth ?? 860) + Appearance.sizes.elevationMargin * 2;
+        if (root.isTranslatorMode) return (Config.options.search.clipboard.panelWidth ?? 860) + Appearance.sizes.elevationMargin * 2;
         return searchWidgetContent.implicitWidth + Appearance.sizes.elevationMargin * 2;
     }
     implicitHeight: {
         if (root.isBluetoothMode) return (bluetoothPanelLoader.item ? bluetoothPanelLoader.item.implicitHeight : 520) + Appearance.sizes.elevationMargin * 2;
         if (root.isClipboardMode) return (clipboardPanelLoader.item ? clipboardPanelLoader.item.implicitHeight : 560) + searchBar.verticalPadding * 2 + Appearance.sizes.elevationMargin * 2;
+        if (root.isTranslatorMode) return (translatorPanelLoader.item ? translatorPanelLoader.item.implicitHeight : 520) + searchBar.verticalPadding * 2 + Appearance.sizes.elevationMargin * 2;
         return searchWidgetContent.implicitHeight + searchBar.verticalPadding * 2 + Appearance.sizes.elevationMargin * 2;
     }
 
     function focusFirstItem() {
         if (root.isBluetoothMode) {
         } else if (root.isClipboardMode) {
+        } else if (root.isTranslatorMode) {
+            if (translatorPanelLoader.item) translatorPanelLoader.item.focusInput();
         } else {
             appResults.currentIndex = 0;
         }
@@ -208,11 +213,13 @@ Item {
         implicitWidth: {
             if (root.isBluetoothMode) return Config.options.search.clipboard.panelWidth ?? 860;
             if (root.isClipboardMode) return Config.options.search.clipboard.panelWidth ?? 860;
+            if (root.isTranslatorMode) return Config.options.search.clipboard.panelWidth ?? 860;
             return gridLayout.implicitWidth;
         }
         implicitHeight: {
             if (root.isBluetoothMode) return bluetoothPanelLoader.item ? bluetoothPanelLoader.item.implicitHeight + searchBar.height + searchBar.verticalPadding * 2 + 10 : 520;
             if (root.isClipboardMode) return clipboardPanelLoader.item ? clipboardPanelLoader.item.implicitHeight + searchBar.height + searchBar.verticalPadding * 2 + 10 : 560;
+            if (root.isTranslatorMode) return translatorPanelLoader.item ? translatorPanelLoader.item.implicitHeight + searchBar.height + searchBar.verticalPadding * 2 + 10 : 520;
             return gridLayout.implicitHeight;
         }
         radius: searchBar.height / 2 + searchBar.verticalPadding
@@ -266,9 +273,10 @@ Item {
                     property alias source: root.searchingText
                 }
 
-                clipboardMode: root.isClipboardMode || root.isBluetoothMode
+                clipboardMode: root.isClipboardMode || root.isBluetoothMode || root.isTranslatorMode
                 clipboardWidth: 830
                 currentResultIndex: appResults.currentIndex
+                isTranslatorPanelFocused: root.isTranslatorMode && translatorPanelLoader.item && translatorPanelLoader.item.focusedControlIndex !== -1
 
                 onCtrlKPressed: {
                     if (appResults.visible) {
@@ -283,6 +291,9 @@ Item {
                     } else if (root.isClipboardMode) {
                         if (clipboardPanelLoader.item)
                             clipboardPanelLoader.item.navigateUp();
+                    } else if (root.isTranslatorMode) {
+                        if (translatorPanelLoader.item)
+                            translatorPanelLoader.item.navigateUp();
                     } else {
                         if (appResults.count > 0 && appResults.currentIndex > 0)
                             appResults.currentIndex--;
@@ -296,6 +307,9 @@ Item {
                     } else if (root.isClipboardMode) {
                         if (clipboardPanelLoader.item)
                             clipboardPanelLoader.item.navigateDown();
+                    } else if (root.isTranslatorMode) {
+                        if (translatorPanelLoader.item)
+                            translatorPanelLoader.item.navigateDown();
                     } else {
                         if (appResults.count > 0 && appResults.currentIndex < appResults.count - 1)
                             appResults.currentIndex++;
@@ -307,6 +321,8 @@ Item {
                         bluetoothPanelLoader.item.navigateLeft();
                     else if (root.isClipboardMode && clipboardPanelLoader.item)
                         clipboardPanelLoader.item.navigateLeft();
+                    else if (root.isTranslatorMode && translatorPanelLoader.item)
+                        translatorPanelLoader.item.navigateLeft();
                 }
 
                 onNavigateRight: {
@@ -314,6 +330,8 @@ Item {
                         bluetoothPanelLoader.item.navigateRight();
                     else if (root.isClipboardMode && clipboardPanelLoader.item)
                         clipboardPanelLoader.item.navigateRight();
+                    else if (root.isTranslatorMode && translatorPanelLoader.item)
+                        translatorPanelLoader.item.navigateRight();
                 }
 
                 onActivate: {
@@ -321,6 +339,8 @@ Item {
                         bluetoothPanelLoader.item.activateSelected();
                     else if (root.isClipboardMode && clipboardPanelLoader.item)
                         clipboardPanelLoader.item.activateSelected();
+                    else if (root.isTranslatorMode && translatorPanelLoader.item)
+                        translatorPanelLoader.item.activateSelected();
                 }
 
                 onDeleteSelected: {
@@ -328,6 +348,8 @@ Item {
                         bluetoothPanelLoader.item.activateSelected();
                     } else if (root.isClipboardMode && clipboardPanelLoader.item) {
                         clipboardPanelLoader.item.activateSelected();
+                    } else if (root.isTranslatorMode && translatorPanelLoader.item) {
+                        translatorPanelLoader.item.activateSelected();
                     }
                 }
             }
@@ -577,6 +599,42 @@ Item {
                     property: "searchQuery"
                     value: StringUtils.cleanOnePrefix(root.searchingText, [Config.options.search.prefix.bluetooth])
                     when: bluetoothPanelLoader.status === Loader.Ready
+                }
+            }
+
+            Loader {
+                id: translatorPanelLoader
+                visible: root.isTranslatorMode
+                active: root.isTranslatorMode
+                Layout.fillWidth: true
+                source: "TranslatorPanel.qml"
+                Layout.row: root.overviewPosition == "bottom" ? 0 : 2
+
+                opacity: root.isTranslatorMode ? 1.0 : 0.0
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 280
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Appearance.animationCurves.emphasizedDecel
+                    }
+                }
+
+                Binding {
+                    target: translatorPanelLoader.item
+                    property: "searchQuery"
+                    value: StringUtils.cleanOnePrefix(root.searchingText, [Config.options.search.prefix.translator])
+                    when: translatorPanelLoader.status === Loader.Ready
+                }
+
+                Connections {
+                    target: translatorPanelLoader.item
+                    ignoreUnknownSignals: true
+                    function onRequestSetSearchQuery(query) {
+                        root.setSearchingText(Config.options.search.prefix.translator + query);
+                    }
+                    function onRequestFocusSearchInput() {
+                        root.focusSearchInput();
+                    }
                 }
             }
         }

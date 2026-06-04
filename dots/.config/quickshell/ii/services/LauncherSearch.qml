@@ -865,6 +865,13 @@ Singleton {
                         execFunc = () => {
                             root.query = Config.options.search.prefix.bluetooth;
                         };
+                    } else if (entry.target === "translator") {
+                        icon = "translate";
+                        name = Translation.tr("Translator");
+                        typeName = Translation.tr("Tool");
+                        execFunc = () => {
+                            root.query = Config.options.search.prefix.translator;
+                        };
                     }
 
                     return resultComp.createObject(null, {
@@ -1038,6 +1045,13 @@ Singleton {
                 prefix: Config.options.search.prefix.bluetooth,
                 label: Translation.tr("Bluetooth Manager"),
                 icon: "bluetooth",
+                isBuiltin: true
+            },
+            {
+                names: ["translator", "translate", "tradutor", "traduzir"],
+                prefix: Config.options.search.prefix.translator,
+                label: Translation.tr("Translator"),
+                icon: "translate",
                 isBuiltin: true
             },
         ];

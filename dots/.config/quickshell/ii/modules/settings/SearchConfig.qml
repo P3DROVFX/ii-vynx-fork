@@ -210,6 +210,14 @@ ContentPage {
                     wrapMode: TextEdit.NoWrap
                     onTextChanged: Config.options.search.prefix.bluetooth = text;
                 }
+
+                StyledText { text: Translation.tr("Translator"); color: Appearance.colors.colOnSurface }
+                MaterialTextArea {
+                    Layout.fillWidth: true
+                    text: Config.options.search.prefix.translator
+                    wrapMode: TextEdit.NoWrap
+                    onTextChanged: Config.options.search.prefix.translator = text;
+                }
             }
         }
     }
@@ -542,6 +550,7 @@ ContentPage {
                                         { id: "emojis", name: Translation.tr("Emoji Picker"), icon: "mood" },
                                         { id: "math", name: Translation.tr("Calculator Mode"), icon: "calculate" },
                                         { id: "bluetooth", name: Translation.tr("Bluetooth Manager"), icon: "bluetooth" },
+                                        { id: "translator", name: Translation.tr("Translator"), icon: "translate" },
                                         { id: "settings", name: Translation.tr("Settings"), icon: "settings" }
                                     ]
 

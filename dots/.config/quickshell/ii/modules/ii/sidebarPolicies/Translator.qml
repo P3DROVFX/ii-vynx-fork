@@ -54,8 +54,16 @@ Item {
     property list<string> languages: []
 
     // Options
-    property string targetLanguage: Config.options.language.translator.targetLanguage
-    property string sourceLanguage: Config.options.language.translator.sourceLanguage
+    property string targetLanguage: {
+        let def = Config.options.language.translator.defaultTargetLanguage;
+        if (def && def !== "" && def !== "auto") return def;
+        return Config.options.language.translator.targetLanguage || "pt";
+    }
+    property string sourceLanguage: {
+        let def = Config.options.language.translator.defaultSourceLanguage;
+        if (def && def !== "" && def !== "auto") return def;
+        return Config.options.language.translator.sourceLanguage || "auto";
+    }
     property string hostLanguage: targetLanguage
 
     // States

@@ -151,12 +151,12 @@ Singleton {
                 property JsonObject transparency: JsonObject {
                     property bool enable: false
                     property bool automatic: false
-                    property bool popups: true
+                    property bool popups: false
                     property real backgroundTransparency: 0.48
                     property real contentTransparency: 0.38
                 }
                 property int blurSize: 10
-                property real ignoreAlpha: 0.1
+                property real ignoreAlpha: 0.4
                 property JsonObject wallpaperTheming: JsonObject {
                     property bool enableAppsAndShell: true
                     property bool enableQtApps: true
@@ -703,6 +703,8 @@ Singleton {
                     property string engine: "auto" // Run `trans -list-engines` for available engines. auto should use google
                     property string targetLanguage: "auto" // Run `trans -list-all` for available languages
                     property string sourceLanguage: "auto"
+                    property string defaultTargetLanguage: "auto"
+                    property string defaultSourceLanguage: "auto"
                 }
             }
 
@@ -893,6 +895,7 @@ Singleton {
                     property string webSearch: "?"
                     property string windowSearch: "#"
                     property string fileBrowser: "~"
+                    property string translator: "@"
                 }
                 property JsonObject imageSearch: JsonObject {
                     property string imageSearchEngineBaseUrl: "https://lens.google.com/uploadbyurl?url="
