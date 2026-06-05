@@ -544,7 +544,7 @@ ContentPage {
 
         Process {
             id: importPresetProc
-            command: ["bash", "-c", `if command -v zenity >/dev/null; then FILE=$(zenity --file-selection --file-filter="JSON | *.json" 2>/dev/null); else FILE=$(kdialog --getopenfilename "$HOME" "*.json" 2>/dev/null); fi; if [ -n "$FILE" ] && [ -f "$FILE" ]; then preset_name=$(basename "$FILE" .json); mkdir -p "$HOME/.config/illogical-impulse/presets"; cp "$FILE" "$HOME/.config/illogical-impulse/presets/$preset_name.json"; echo 'success'; fi`]
+            command: ["bash", "-c", `${Directories.scriptPath}/presets.sh import`]
             stdout: SplitParser {
                 onRead: data => {
                     if (data.trim() === "success") {
@@ -754,9 +754,7 @@ ContentPage {
                                     }
 
                                     onClicked: {
-                                        let presetName = model.name;
-                                        let cmd = `if command -v zenity >/dev/null; then FILE=$(zenity --file-selection --save --confirm-overwrite --filename="$HOME/${presetName}.json" --file-filter="JSON | *.json" 2>/dev/null); else FILE=$(kdialog --getsavefilename "$HOME/${presetName}.json" "*.json" 2>/dev/null); fi; if [ -n "$FILE" ]; then cp "$HOME/.config/illogical-impulse/presets/${presetName}.json" "$FILE"; fi`;
-                                        Quickshell.execDetached(["bash", "-c", cmd]);
+                                        Quickshell.execDetached(["bash", "-c", `${Directories.scriptPath}/presets.sh export "${model.name}"`]);
                                     }
 
                                     StyledToolTip {
