@@ -42,6 +42,19 @@ Flow {
             id: paletteButton
             required property var modelData
             required property int index
+            
+            readonly property bool isOptionEnabled: modelData.enabled !== undefined ? modelData.enabled : true
+            opacity: isOptionEnabled ? 1.0 : 0.5
+            mouseArea.cursorShape: isOptionEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+            
+            color: isOptionEnabled ? (toggled ? 
+                (down ? colBackgroundToggledActive : 
+                    hovered ? colBackgroundToggledHover : 
+                    colBackgroundToggled) :
+                (down ? colBackgroundActive : 
+                    hovered ? colBackgroundHover : 
+                    colBackground)) : colBackground
+
             onYChanged: {
                 if (index === 0) {
                     paletteButton.leftmost = true
@@ -67,7 +80,16 @@ Flow {
             colBackgroundActive: root.colBackgroundActive
 
             onClicked: {
-                root.selected(modelData.value);
+                if (isOptionEnabled) {
+                    root.selected(modelData.value);
+                }
+            }
+
+            Loader {
+                active: modelData.tooltip !== undefined && modelData.tooltip !== ""
+                sourceComponent: StyledToolTip {
+                    text: modelData.tooltip || ""
+                }
             }
         }
     }

@@ -22,7 +22,7 @@ Item {
 
     readonly property bool useWorkspaceMap: Config.options.bar.workspaces.useWorkspaceMap
     readonly property list<int> workspaceMap: Config.options.bar.workspaces.workspaceMap
-    readonly property int monitorIndex: barLoader.monitorIndex
+    readonly property int monitorIndex: root.QsWindow.window && root.QsWindow.window.screen ? Quickshell.screens.indexOf(root.QsWindow.window.screen) : 0
     property int workspaceOffset: useWorkspaceMap ? workspaceMap[monitorIndex] : 0
 
     property var shapesList: [
@@ -89,7 +89,7 @@ Item {
         const wsId = workspaceGroup * workspacesShown + wsIndex + 1 + workspaceOffset;
         const isActive = wsId === effectiveActiveWorkspaceId;
         const isOccupied = workspaceOccupied[wsIndex];
-        return !dynamicWorkspaces || isActive || isOccupied;
+        return !dynamicWorkspaces || isActive || (isOccupied || false);
     }
 
     readonly property int visibleActiveIndex: {
@@ -457,9 +457,9 @@ Item {
                 Layout.alignment: Qt.AlignCenter
 
                 property int wsId: workspaceGroup * workspacesShown + index + 1 + workspaceOffset
-                property bool currentOccupied: workspaceOccupied[index] && wsId != effectiveActiveWorkspaceId
-                property bool previousOccupied: index > 0 && workspaceOccupied[index - 1] && (wsId - 1) != effectiveActiveWorkspaceId
-                property bool nextOccupied: index < workspacesShown - 1 && workspaceOccupied[index + 1] && (wsId + 1) != effectiveActiveWorkspaceId
+                property bool currentOccupied: (workspaceOccupied[index] || false) && wsId != effectiveActiveWorkspaceId
+                property bool previousOccupied: index > 0 && (workspaceOccupied[index - 1] || false) && (wsId - 1) != effectiveActiveWorkspaceId
+                property bool nextOccupied: index < workspacesShown - 1 && (workspaceOccupied[index + 1] || false) && (wsId + 1) != effectiveActiveWorkspaceId
 
                 property int windowCount: root.getWindowCountForWorkspace(wsId)
 

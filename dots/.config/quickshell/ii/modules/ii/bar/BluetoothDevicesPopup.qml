@@ -165,8 +165,8 @@ StyledPopup {
 
                                 Connections {
                                     target: root
-                                    function onVisibleChanged() {
-                                        if (root.visible)
+                                    function onActiveChanged() {
+                                        if (root.active)
                                             bgShape.rollShape();
                                     }
                                 }
@@ -176,7 +176,7 @@ StyledPopup {
                                     to: 360
                                     duration: 10000
                                     loops: Animation.Infinite
-                                    running: root.visible
+                                    running: root.active
                                 }
                             }
 

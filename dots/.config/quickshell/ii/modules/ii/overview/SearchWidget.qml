@@ -38,7 +38,7 @@ Item {
     readonly property bool isAnySpecialMode: root.isClipboardMode || root.isBluetoothMode || root.isTranslatorMode
     readonly property bool alwaysListAppsMode: Config.options.search.alwaysListApps && !root.isAnySpecialMode
     property bool showResults: searchingText != "" || isAnySpecialMode || alwaysListAppsMode || (searchingText === "" && LauncherSearch.results.length > 0)
-    property string overviewPosition: Config.options.overview.position
+    property string overviewPosition: Config.options.overview?.position ?? ""
     property bool isNowPlayingFocused: false
 
     Connections {

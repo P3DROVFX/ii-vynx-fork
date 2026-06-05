@@ -930,6 +930,7 @@ Singleton {
                     property string customText: ""
                 }
                 property string position: "default"
+                property string sidebarStyle: "connect" // "default" | "connect"
                 property bool keepRightSidebarLoaded: true
                 property JsonObject translator: JsonObject {
                     property bool enable: false

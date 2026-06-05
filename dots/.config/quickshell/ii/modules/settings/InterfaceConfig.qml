@@ -866,6 +866,31 @@ ContentPage {
 
         ConfigRow {
             ContentSubsection {
+                title: Translation.tr("Sidebar style")
+
+                ConfigSelectionArray {
+                    currentValue: Config.options.sidebar.sidebarStyle || "default"
+                    onSelected: newValue => {
+                        Config.options.sidebar.sidebarStyle = newValue;
+                    }
+                    options: [
+                        {
+                            displayName: Translation.tr("Default"),
+                            icon: "side_navigation",
+                            value: "default"
+                        },
+                        {
+                            displayName: Translation.tr("Connect"),
+                            icon: "cable",
+                            value: "connect",
+                            enabled: Config.options.bar.barBackgroundStyle !== 0,
+                            tooltip: Config.options.bar.barBackgroundStyle === 0 ? Translation.tr("Connect style requires a visible or adaptive bar background style") : ""
+                        }
+                    ]
+                }
+            }
+
+            ContentSubsection {
                 title: Translation.tr("Sidebar position")
 
                 ConfigSelectionArray {

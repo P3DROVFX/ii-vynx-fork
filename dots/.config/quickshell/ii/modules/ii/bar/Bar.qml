@@ -32,7 +32,7 @@ Scope {
             property int monitorIndex: barVariant.variantModel.indexOf(modelData)
 
 
-            active: GlobalStates.barOpen && !GlobalStates.screenLocked
+            active: GlobalStates.barOpen && !GlobalStates.screenLocked && !GlobalStates.connectModeActive
             component: Scope {
                 id: barScope
                 
@@ -47,8 +47,15 @@ Scope {
                         left: true
                         right: true
                     }
-                    exclusionMode: ExclusionMode.Exclusive
-                    exclusiveZone: (Config?.options.bar.autoHide.enable && (!barRoot.mustShow || !Config?.options.bar.autoHide.pushWindows)) ? 0 : Appearance.sizes.baseBarHeight + (Config.options.bar.cornerStyle === 1 ? Appearance.sizes.hyprlandGapsOut : 0)
+                    exclusionMode: ExclusionMode.Normal
+                    
+                    property real targetZone: Appearance.sizes.baseBarHeight + (Config.options.bar.cornerStyle === 1 ? Appearance.sizes.hyprlandGapsOut : 0)
+                    property real minZone: Config.options.appearance.fakeScreenRounding === 3 ? Config.options.appearance.wrappedFrameThickness : 0
+                    
+                    exclusiveZone: (Config?.options.bar.autoHide.enable && !Config?.options.bar.autoHide.pushWindows) 
+                        ? minZone 
+                        : Math.max(minZone, targetZone - (barRoot ? barRoot.hiddenAmount : 0))
+
                     implicitHeight: Appearance.sizes.barHeight + Appearance.rounding.screenRounding
                     color: "transparent"
                     mask: Region {}
@@ -105,7 +112,12 @@ Scope {
                         }
                     }
                     property bool superShow: false
-                    property bool mustShow: hoverRegion.containsMouse || superShow
+                    property bool mustShow: hoverRegion.containsMouse || superShow || GlobalStates.sidebarLeftOpen || GlobalStates.sidebarRightOpen
+                    property real hiddenAmount: (Config?.options.bar.autoHide.enable && !mustShow) ? Appearance.sizes.barHeight : 0
+                    Behavior on hiddenAmount {
+                        animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(barRoot)
+                    }
+
                     exclusionMode: ExclusionMode.Ignore
                     exclusiveZone: 0
                     WlrLayershell.namespace: "quickshell:bar"
@@ -141,6 +153,8 @@ Scope {
                                 anchors.fill: parent
                                 WrappedFrameVisuals {
                                     showBarBackground: barRoot.showBarBackground
+                                    hBarHiddenAmount: barRoot.hiddenAmount
+                                    vBarHiddenAmount: 0
                                 }
                             }
                         }
@@ -177,7 +191,7 @@ Scope {
                                 left: parent.left
                                 top: parent.top
                                 bottom: undefined
-                                topMargin: (Config?.options.bar.autoHide.enable && !barRoot.mustShow) ? -Appearance.sizes.barHeight : 0
+                                topMargin: -barRoot.hiddenAmount
                                 rightMargin: (Config.options.interactions.deadPixelWorkaround.enable) * -1
                             }
                             Behavior on anchors.topMargin {
@@ -202,7 +216,7 @@ Scope {
                                 PropertyChanges {
                                     target: barContent
                                     anchors.topMargin: 0
-                                    anchors.bottomMargin: (Config?.options.bar.autoHide.enable && !barRoot.mustShow) ? -Appearance.sizes.barHeight : (Config.options.interactions.deadPixelWorkaround.enable) * -1
+                                    anchors.bottomMargin: -barRoot.hiddenAmount - ((Config.options.interactions.deadPixelWorkaround.enable) ? 1 : 0)
                                 }
                             }
                         }

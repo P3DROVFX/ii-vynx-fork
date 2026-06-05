@@ -725,7 +725,7 @@ Item {
                                  implicitWidth: 32
                                  implicitHeight: 32
 
-                                 readonly property bool isProcessing: deviceDelegate.dev ? (deviceDelegate.dev.state === 3 || deviceDelegate.dev.state === 2 || root.connectingDevices[deviceDelegate.dev.address] || root.disconnectingDevices[deviceDelegate.dev.address]) : false
+                                 readonly property bool isProcessing: deviceDelegate.dev ? (deviceDelegate.dev.state === 3 || deviceDelegate.dev.state === 2 || !!root.connectingDevices[deviceDelegate.dev.address] || !!root.disconnectingDevices[deviceDelegate.dev.address]) : false
 
                                  MaterialSymbol {
                                      anchors.centerIn: parent
@@ -1105,7 +1105,7 @@ Item {
                                 colRipple: Appearance.colors.colPrimaryContainerActive
 
                                 property bool isActionSelected: root.selectedActionIndex === 0
-                                readonly property bool isProcessing: root.selectedDevice ? (root.selectedDevice.state === 3 || root.selectedDevice.state === 2 || root.connectingDevices[root.selectedDevice.address] || root.disconnectingDevices[root.selectedDevice.address]) : false
+                                readonly property bool isProcessing: root.selectedDevice ? (root.selectedDevice.state === 3 || root.selectedDevice.state === 2 || !!root.connectingDevices[root.selectedDevice.address] || !!root.disconnectingDevices[root.selectedDevice.address]) : false
 
                                 PointingHandInteraction {}
                                 onClicked: {

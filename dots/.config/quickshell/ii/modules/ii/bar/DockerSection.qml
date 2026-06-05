@@ -284,9 +284,13 @@ Item {
             model: DockerService.containers
             spacing: 8
 
+            HoverHandler {
+                id: listHoverHandler
+            }
+
             ScrollBar.vertical: ScrollBar {
                 policy: ScrollBar.AsNeeded
-                active: containersListView.moving || containersListView.hovered
+                active: containersListView.moving || listHoverHandler.hovered
             }
 
             delegate: ContainerCard {

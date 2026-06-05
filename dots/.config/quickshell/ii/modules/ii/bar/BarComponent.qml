@@ -23,7 +23,9 @@ Item {
     implicitHeight: wrapper.implicitHeight
 
     function toggleVisible(visibility) {
-        visible = visibility;
+        if (visible !== visibility) {
+            visible = visibility;
+        }
         let item = null;
         if (barSection == 0)
             item = Config.options.bar.layouts.left[originalIndex];
@@ -33,7 +35,9 @@ Item {
             item = Config.options.bar.layouts.right[originalIndex];
 
         if (item !== undefined && item !== null) {
-            item.visible = visibility;
+            if (item.visible !== visibility) {
+                item.visible = visibility;
+            }
         }
     }
 

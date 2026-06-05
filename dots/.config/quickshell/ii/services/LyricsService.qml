@@ -107,7 +107,7 @@ Singleton {
 
     GeniusLyrics {
         id: genius
-        readonly property string trackTitle: root.activePlayer?.trackTitle
+        readonly property string trackTitle: root.activePlayer?.trackTitle ?? ""
         onTrackTitleChanged: {
             if (root.activePlayer) {
                 if (!effectiveGeniusEnabled) return;

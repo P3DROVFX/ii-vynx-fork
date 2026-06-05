@@ -45,6 +45,9 @@ Singleton {
     property bool videoEditorPopupOpen: false
     property bool videoEditorOpen: false
     property string videoEditorPath: ""
+    property string activeLeftSidebarMonitor: ""
+    property string activeRightSidebarMonitor: ""
+    property bool policiesExtended: false
 
     // Bluetooth connection popup
     property bool bluetoothConnectionPopupOpen: false
@@ -96,6 +99,161 @@ Singleton {
         }
     }
 
+    readonly property bool connectModeActive: {
+        if (!Config.ready) return false;
+        const style = Config.options.sidebar.sidebarStyle || "default";
+        if (style !== "connect") return false;
+        
+        // Connect style is disabled if the bar background style is Transparent
+        if (Config.options.bar.barBackgroundStyle === 0) return false;
+        
+        // Works in all rounding modes except Edge (4)
+        if (Config.options.appearance.fakeScreenRounding === 4) return false;
+        
+        // Only works with cornerStyle 0 (Hug) or 2 (Rect)
+        const cs = Config.options.bar.cornerStyle;
+        return cs === 0 || cs === 2;
+    }
+
+    function enforceSidebarStyle() {
+        if (!Config.ready) return;
+        if (Config.options.bar.barBackgroundStyle === 0 && Config.options.sidebar.sidebarStyle === "connect") {
+            Config.options.sidebar.sidebarStyle = "default";
+        }
+    }
+
+    Connections {
+        target: Config
+        function onReadyChanged() {
+            if (Config.ready) {
+                root.enforceSidebarStyle();
+            }
+        }
+    }
+
+    Connections {
+        target: Config.ready ? Config.options.bar : null
+        function onBarBackgroundStyleChanged() {
+            root.enforceSidebarStyle();
+        }
+    }
+
+    Connections {
+        target: Config.ready ? Config.options.sidebar : null
+        function onSidebarStyleChanged() {
+            root.enforceSidebarStyle();
+        }
+    }
+
+    readonly property real policiesWidth: {
+        if (policiesExtended)
+            return Appearance.sizes.sidebarWidthExtended;
+
+        const p = Config.options.policies;
+        let activeCount = 0;
+        if (p.ai !== 0)
+            activeCount++;
+        if (p.translator !== 0)
+            activeCount++;
+        if (p.player !== 0)
+            activeCount++;
+        if (p.wallpapers !== 0)
+            activeCount++;
+        if (p.weeb !== 0 && p.weeb !== 2)
+            activeCount++;
+
+        return activeCount >= 4 ? Appearance.sizes.sidebarWidthExpanded : Appearance.sizes.sidebarWidth;
+    }
+
+    readonly property real dashboardWidth: Appearance.sizes.sidebarWidth
+
+    readonly property real leftSidebarTargetWidth: {
+        if (!effectiveLeftOpen)
+            return 0;
+        switch (Config.options.sidebar.position) {
+        case "default":
+            return policiesWidth;
+        case "inverted":
+            return dashboardWidth;
+        case "left":
+            if (policiesPanelOpen)
+                return policiesWidth;
+            if (dashboardPanelOpen)
+                return dashboardWidth;
+            return 0;
+        default:
+            return policiesWidth;
+        }
+    }
+
+    readonly property real rightSidebarTargetWidth: {
+        if (!effectiveRightOpen)
+            return 0;
+        switch (Config.options.sidebar.position) {
+        case "default":
+            return dashboardWidth;
+        case "inverted":
+            return policiesWidth;
+        case "right":
+            if (policiesPanelOpen)
+                return policiesWidth;
+            if (dashboardPanelOpen)
+                return dashboardWidth;
+            return 0;
+        default:
+            return dashboardWidth;
+        }
+    }
+
+    property real animatedLeftSidebarWidth: 0
+    property real animatedRightSidebarWidth: 0
+
+    NumberAnimation {
+        id: leftSidebarAnimation
+        target: root
+        property: "animatedLeftSidebarWidth"
+        easing.type: Easing.OutQuart
+    }
+
+    NumberAnimation {
+        id: rightSidebarAnimation
+        target: root
+        property: "animatedRightSidebarWidth"
+        easing.type: Easing.OutQuart
+    }
+
+    onLeftSidebarTargetWidthChanged: {
+        leftSidebarAnimation.stop();
+        if (leftSidebarTargetWidth > 0) {
+            leftSidebarAnimation.duration = Appearance.animation.elementMoveEnter.duration;
+            leftSidebarAnimation.easing.type = Easing.OutQuart;
+        } else {
+            leftSidebarAnimation.duration = Appearance.animation.elementMoveEnter.duration;
+            leftSidebarAnimation.easing.type = Easing.OutQuart;
+        }
+        leftSidebarAnimation.to = leftSidebarTargetWidth;
+        leftSidebarAnimation.start();
+    }
+
+    onRightSidebarTargetWidthChanged: {
+        rightSidebarAnimation.stop();
+        if (rightSidebarTargetWidth > 0) {
+            rightSidebarAnimation.duration = Appearance.animation.elementMoveEnter.duration;
+            rightSidebarAnimation.easing.type = Easing.OutQuart;
+        } else {
+            rightSidebarAnimation.duration = Appearance.animation.elementMoveEnter.duration;
+            rightSidebarAnimation.easing.type = Easing.OutQuart;
+        }
+        rightSidebarAnimation.to = rightSidebarTargetWidth;
+        rightSidebarAnimation.start();
+    }
+
+    Component.onCompleted: {
+        animatedLeftSidebarWidth = leftSidebarTargetWidth;
+        animatedRightSidebarWidth = rightSidebarTargetWidth;
+        root.enforceSidebarStyle();
+    }
+
     property bool dashboardPanelOpen: false // formerly sidebarRightOpen
     property bool policiesPanelOpen: false  // formerly sidebarLeftOpen
 
@@ -128,21 +286,144 @@ Singleton {
         }
     }
 
+    function toggleLeftSidebar(monitorName) {
+        if (root.policiesPanelOpen) {
+            root.policiesPanelOpen = false;
+        } else {
+            root.activeLeftSidebarMonitor = monitorName || Hyprland.focusedMonitor?.name || "";
+            root.policiesPanelOpen = true;
+        }
+    }
+
+    function toggleRightSidebar(monitorName) {
+        if (root.dashboardPanelOpen) {
+            root.dashboardPanelOpen = false;
+        } else {
+            root.activeRightSidebarMonitor = monitorName || Hyprland.focusedMonitor?.name || "";
+            root.dashboardPanelOpen = true;
+        }
+    }
+
+    function openLeftSidebar(monitorName) {
+        root.activeLeftSidebarMonitor = monitorName || Hyprland.focusedMonitor?.name || "";
+        root.policiesPanelOpen = true;
+    }
+
+    function openRightSidebar(monitorName) {
+        root.activeRightSidebarMonitor = monitorName || Hyprland.focusedMonitor?.name || "";
+        root.dashboardPanelOpen = true;
+    }
+
+    onAnimatedLeftSidebarWidthChanged: {
+        if (animatedLeftSidebarWidth === 0 && !policiesPanelOpen) {
+            root.activeLeftSidebarMonitor = "";
+        }
+    }
+
+    onAnimatedRightSidebarWidthChanged: {
+        if (animatedRightSidebarWidth === 0 && !dashboardPanelOpen) {
+            root.activeRightSidebarMonitor = "";
+        }
+    }
+
     onPoliciesPanelOpenChanged: {
         if (policiesPanelOpen) {
+            if (root.activeLeftSidebarMonitor === "") {
+                root.activeLeftSidebarMonitor = Hyprland.focusedMonitor?.name ?? "";
+            }
             if (Config.options.sidebar.position == "right" || Config.options.sidebar.position == "left") {
-                GlobalStates.dashboardPanelOpen = false;
+                root.dashboardPanelOpen = false;
             }
         }
     }
 
     onDashboardPanelOpenChanged: {
         if (dashboardPanelOpen) {
+            if (root.activeRightSidebarMonitor === "") {
+                root.activeRightSidebarMonitor = Hyprland.focusedMonitor?.name ?? "";
+            }
             Notifications.timeoutAll();
             Notifications.markAllRead();
             if (Config.options.sidebar.position == "right" || Config.options.sidebar.position == "left") {
-                GlobalStates.policiesPanelOpen = false;
+                root.policiesPanelOpen = false;
             }
+        }
+    }
+
+    // Sidebar Right (Dashboard) IPC
+    IpcHandler {
+        target: "sidebarRight"
+
+        function toggle(): void {
+            root.toggleRightSidebar();
+        }
+
+        function close(): void {
+            root.dashboardPanelOpen = false;
+        }
+
+        function open(): void {
+            root.openRightSidebar();
+        }
+    }
+
+    // Sidebar Left (Policies) IPC
+    IpcHandler {
+        target: "sidebarLeft"
+        function toggle(): void {
+            root.toggleLeftSidebar();
+        }
+        function close(): void {
+            root.sidebarLeftOpen = false;
+        }
+        function open(): void {
+            root.openLeftSidebar();
+        }
+    }
+
+    // Sidebar Right Global Shortcuts
+    GlobalShortcut {
+        name: "sidebarRightToggle"
+        description: "Toggles right sidebar on press"
+        onPressed: {
+            root.toggleRightSidebar();
+        }
+    }
+    GlobalShortcut {
+        name: "sidebarRightOpen"
+        description: "Opens right sidebar on press"
+        onPressed: {
+            root.openRightSidebar();
+        }
+    }
+    GlobalShortcut {
+        name: "sidebarRightClose"
+        description: "Closes right sidebar on press"
+        onPressed: {
+            root.sidebarRightOpen = false;
+        }
+    }
+
+    // Sidebar Left Global Shortcuts
+    GlobalShortcut {
+        name: "sidebarLeftToggle"
+        description: "Toggles left sidebar on press"
+        onPressed: {
+            root.toggleLeftSidebar();
+        }
+    }
+    GlobalShortcut {
+        name: "sidebarLeftOpen"
+        description: "Opens left sidebar on press"
+        onPressed: {
+            root.openLeftSidebar();
+        }
+    }
+    GlobalShortcut {
+        name: "sidebarLeftClose"
+        description: "Closes left sidebar on press"
+        onPressed: {
+            root.sidebarLeftOpen = false;
         }
     }
 

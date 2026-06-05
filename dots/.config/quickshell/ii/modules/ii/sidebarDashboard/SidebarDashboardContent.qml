@@ -2,6 +2,7 @@ import qs
 import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
+import qs.modules.ii.bar as Bar
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -48,11 +49,21 @@ Item {
         }
     }
 
+    Bar.BarThemes {
+        id: barThemes
+    }
+    readonly property var activeTheme: barThemes.getTheme(Config.options.bar.expressiveColorTheme)
+
     implicitHeight: sidebarRightBackground.implicitHeight
     implicitWidth: sidebarRightBackground.implicitWidth
 
-    StyledRectangularShadow {
-        target: sidebarRightBackground
+    Loader {
+        active: !GlobalStates.connectModeActive
+        sourceComponent: Component {
+            StyledRectangularShadow {
+                target: sidebarRightBackground
+            }
+        }
     }
     Rectangle {
         id: sidebarRightBackground
@@ -60,10 +71,10 @@ Item {
         anchors.fill: parent
         implicitHeight: parent.height - Appearance.sizes.hyprlandGapsOut * 2
         implicitWidth: sidebarWidth - Appearance.sizes.hyprlandGapsOut * 2
-        color: Appearance.colors.colLayer0
-        border.width: 1
-        border.color: Appearance.colors.colLayer0Border
-        radius: Appearance.rounding.screenRounding - Appearance.sizes.hyprlandGapsOut + 1
+        color: Config.options.bar.expressiveColors ? activeTheme.barBackground : Appearance.colors.colLayer0
+        border.width: GlobalStates.connectModeActive ? 0 : 1
+        border.color: GlobalStates.connectModeActive ? "transparent" : Appearance.colors.colLayer0Border
+        radius: GlobalStates.connectModeActive ? 0 : Appearance.rounding.screenRounding - Appearance.sizes.hyprlandGapsOut + 1
 
         ColumnLayout {
             anchors.fill: parent

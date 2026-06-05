@@ -118,6 +118,6 @@ Item {
     component FrameSpaceReserver: PanelWindow {
         color: "transparent"
         mask: Region {}
-        exclusionMode: ExclusionMode.Exclusive
+        exclusionMode: ExclusionMode.Normal
     }
 }

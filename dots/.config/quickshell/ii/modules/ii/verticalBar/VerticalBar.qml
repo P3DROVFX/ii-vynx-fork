@@ -32,7 +32,7 @@ Scope {
             property var monitorIndex: barVariant.variantModel.indexOf(barLoader.modelData)
 
 
-            active: GlobalStates.barOpen && !GlobalStates.screenLocked
+            active: GlobalStates.barOpen && !GlobalStates.screenLocked && !GlobalStates.connectModeActive
             component: Scope {
                 id: barScope
 
@@ -47,8 +47,15 @@ Scope {
                         top: true
                         bottom: true
                     }
-                    exclusionMode: ExclusionMode.Exclusive
-                    exclusiveZone: (Config?.options.bar.autoHide.enable && (!barRoot.mustShow || !Config?.options.bar.autoHide.pushWindows)) ? 0 : Appearance.sizes.baseVerticalBarWidth + (Config.options.bar.cornerStyle === 1 ? Appearance.sizes.hyprlandGapsOut : 0)
+                    exclusionMode: ExclusionMode.Normal
+                    
+                    property real targetZone: Appearance.sizes.baseVerticalBarWidth + (Config.options.bar.cornerStyle === 1 ? Appearance.sizes.hyprlandGapsOut : 0)
+                    property real minZone: Config.options.appearance.fakeScreenRounding === 3 ? Config.options.appearance.wrappedFrameThickness : 0
+                    
+                    exclusiveZone: (Config?.options.bar.autoHide.enable && !Config?.options.bar.autoHide.pushWindows) 
+                        ? minZone 
+                        : Math.max(minZone, targetZone - (barRoot ? barRoot.hiddenAmount : 0))
+
                     implicitWidth: Appearance.sizes.verticalBarWidth + Appearance.rounding.screenRounding
                     color: "transparent"
                     mask: Region {}
@@ -107,7 +114,12 @@ Scope {
                         }
                     }
                     property bool superShow: false
-                    property bool mustShow: hoverRegion.containsMouse || superShow
+                    property bool mustShow: hoverRegion.containsMouse || superShow || GlobalStates.sidebarLeftOpen || GlobalStates.sidebarRightOpen
+                    property real hiddenAmount: (Config?.options.bar.autoHide.enable && !mustShow) ? Appearance.sizes.verticalBarWidth : 0
+                    Behavior on hiddenAmount {
+                        animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(barRoot)
+                    }
+
                     exclusionMode: ExclusionMode.Ignore
                     exclusiveZone: 0
                     WlrLayershell.namespace: "quickshell:verticalBar"
@@ -143,6 +155,8 @@ Scope {
                                 anchors.fill: parent
                                 WrappedFrameVisuals {
                                     showBarBackground: barRoot.showBarBackground
+                                    hBarHiddenAmount: 0
+                                    vBarHiddenAmount: barRoot.hiddenAmount
                                 }
                             }
                         }
@@ -164,13 +178,14 @@ Scope {
 
                         VerticalBarContent {
                             id: barContent
+                            monitorIndex: barRoot.monitorIndex
                             implicitWidth: Appearance.sizes.verticalBarWidth
                             anchors {
                                 top: parent.top
                                 bottom: parent.bottom
                                 left: parent.left
                                 right: undefined
-                                leftMargin: (Config?.options.bar.autoHide.enable && !barRoot.mustShow) ? -Appearance.sizes.verticalBarWidth : 0
+                                leftMargin: -barRoot.hiddenAmount
                                 rightMargin: 0
                             }
                             Behavior on anchors.leftMargin {
@@ -194,8 +209,8 @@ Scope {
                                 }
                                 PropertyChanges {
                                     target: barContent
-                                    anchors.topMargin: 0
-                                    anchors.rightMargin: (Config?.options.bar.autoHide.enable && !barRoot.mustShow) ? -Appearance.sizes.verticalBarWidth : 0
+                                    anchors.leftMargin: 0
+                                    anchors.rightMargin: -barRoot.hiddenAmount
                                 }
                             }
                         }

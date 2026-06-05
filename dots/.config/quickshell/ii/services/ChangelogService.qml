@@ -22,6 +22,8 @@ Singleton {
         refresh();
     }
 
+    function load() {}
+
     function refresh() {
         repoProc.running = true;
     }

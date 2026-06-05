@@ -63,7 +63,9 @@ Item {
         target: contentBackground
         opacity: contentBackground.opacity
         scale: contentBackground.scale
-        transform: contentBackground.transform
+        transform: Translate {
+            y: contentBackground.yOffset
+        }
     }
 
     Rectangle {

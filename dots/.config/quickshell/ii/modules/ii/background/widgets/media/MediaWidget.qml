@@ -151,7 +151,7 @@ AbstractBackgroundWidget {
             anchors.fill: parent
             source: root.displayedArtFilePath
             sourceSize.width: contentItem.implicitWidth
-            sourceSize.height: sourceSize.width
+            sourceSize.height: contentItem.implicitHeight
             fillMode: Image.PreserveAspectCrop
             cache: false
             antialiasing: true

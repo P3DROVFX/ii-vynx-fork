@@ -2,6 +2,7 @@ import qs
 import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
+import qs.modules.ii.bar as Bar
 import QtQuick
 import Quickshell.Io
 import Quickshell
@@ -15,12 +16,16 @@ Scope { // Scope
     property Component contentComponent: SidebarPoliciesContent {}
     property Item sidebarContent
 
+    Bar.BarThemes { id: barThemes }
+    readonly property var activeTheme: barThemes.getTheme(Config.options.bar.expressiveColorTheme)
+
     readonly property bool isOnLeft: {
         const pos = Config.options.sidebar.position;
         return pos === "default" || pos === "left"; 
     }
 
     function toggleDetach() {
+        if (GlobalStates.connectModeActive) return;
         root.detach = !root.detach;
     }
 
@@ -59,11 +64,13 @@ Scope { // Scope
     }
 
     function togglePin() {
+        if (GlobalStates.connectModeActive) return;
         if (!root.pin) pinWithFunnyHyprlandWorkaroundProc.doIt()
         else root.pin = !root.pin;
     }
 
     Component.onCompleted: {
+        if (GlobalStates.connectModeActive) return;
         root.sidebarContent = contentComponent.createObject(null, {
             "scopeRoot": root,
         });
@@ -71,6 +78,7 @@ Scope { // Scope
     }
 
     onDetachChanged: {
+        if (GlobalStates.connectModeActive) return;
         if (root.detach) {
             GlobalFocusGrab.removeDismissable(sidebarLoader.item) // Remove sidebar from the focus grab system
             sidebarContent.parent = null; // Detach content from sidebar
@@ -87,7 +95,7 @@ Scope { // Scope
 
     Loader {
         id: sidebarLoader
-        active: true
+        active: !GlobalStates.connectModeActive
         
         sourceComponent: PanelWindow {
             id: panelWindow
@@ -166,7 +174,7 @@ Scope { // Scope
 
             Rectangle {
                 id: sidebarLeftBackground
-                color: Appearance.colors.colLayer0
+                color: Config.options.bar.expressiveColors ? activeTheme.barBackground : Appearance.colors.colLayer0
                 border.width: root.pin ? 0 : 1
                 border.color: root.pin ? "transparent" : Appearance.colors.colLayer0Border
                 radius: root.pin ? 0 : Appearance.rounding.screenRounding - Appearance.sizes.hyprlandGapsOut + 1
@@ -281,7 +289,7 @@ Scope { // Scope
                             right: !root.isOnLeft ? parent.right : undefined
                         }
                         implicitSize: Appearance.rounding.screenRounding
-                        color: Appearance.colors.colLayer0
+                        color: Config.options.bar.expressiveColors ? activeTheme.barBackground : Appearance.colors.colLayer0
                         corner: root.isOnLeft ? RoundCorner.CornerEnum.TopLeft : RoundCorner.CornerEnum.TopRight
                     }
                     RoundCorner {
@@ -291,7 +299,7 @@ Scope { // Scope
                             right: !root.isOnLeft ? parent.right : undefined
                         }
                         implicitSize: Appearance.rounding.screenRounding
-                        color: Appearance.colors.colLayer0
+                        color: Config.options.bar.expressiveColors ? activeTheme.barBackground : Appearance.colors.colLayer0
                         corner: root.isOnLeft ? RoundCorner.CornerEnum.BottomLeft : RoundCorner.CornerEnum.BottomRight
                     }
                 }
@@ -320,7 +328,7 @@ Scope { // Scope
             Rectangle {
                 id: detachedSidebarBackground
                 anchors.fill: parent
-                color: Appearance.colors.colLayer0
+                color: Config.options.bar.expressiveColors ? activeTheme.barBackground : Appearance.colors.colLayer0
 
                 Keys.onPressed: (event) => {
                     if (event.modifiers === Qt.ControlModifier) {
@@ -334,54 +342,14 @@ Scope { // Scope
         }
     }
 
-    IpcHandler {
-        target: "sidebarLeft"
 
-        function toggle(): void {
-            GlobalStates.sidebarLeftOpen = !GlobalStates.sidebarLeftOpen
-        }
-
-        function close(): void {
-            GlobalStates.sidebarLeftOpen = false
-        }
-
-        function open(): void {
-            GlobalStates.sidebarLeftOpen = true
-        }
-    }
-
-    GlobalShortcut {
-        name: "sidebarLeftToggle"
-        description: "Toggles left sidebar on press"
-
-        onPressed: {
-            GlobalStates.sidebarLeftOpen = !GlobalStates.sidebarLeftOpen;
-        }
-    }
-
-    GlobalShortcut {
-        name: "sidebarLeftOpen"
-        description: "Opens left sidebar on press"
-
-        onPressed: {
-            GlobalStates.sidebarLeftOpen = true;
-        }
-    }
-
-    GlobalShortcut {
-        name: "sidebarLeftClose"
-        description: "Closes left sidebar on press"
-
-        onPressed: {
-            GlobalStates.sidebarLeftOpen = false;
-        }
-    }
 
     GlobalShortcut {
         name: "sidebarLeftToggleDetach"
         description: "Detach left sidebar into a window/Attach it back"
 
         onPressed: {
+            if (GlobalStates.connectModeActive) return;
             root.detach = !root.detach;
         }
     }

@@ -195,7 +195,7 @@ Item {
                 StyledText {
                     anchors.centerIn: parent
                     font.pixelSize: Appearance.font.pixelSize.smallest
-                    font.weight: Font.light
+                    font.weight: Font.Light
                     color: Appearance.colors.colOnTertiaryContainer
                     text: layoutHoriz.ampm
                 }

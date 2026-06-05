@@ -14,6 +14,7 @@ Item { // Bar content region
     id: root
 
     property var screen: root.QsWindow.window?.screen
+    property int monitorIndex
     property var brightnessMonitor: Brightness.getMonitorForScreen(screen)
     property bool hasActiveWindows: false
     property bool showBarBackground: root.hasActiveWindows && Config.options.bar.barBackgroundStyle === 2 || Config.options.bar.barBackgroundStyle === 1

@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import qs
 
 import qs.modules.common
 import qs.modules.ii.background
@@ -29,6 +30,7 @@ import qs.modules.ii.videoEditor
 import qs.modules.ii.localSendPopup
 import qs.modules.ii.scratchpadOverlay
 import qs.modules.ii.keyboardLayoutTransitionPopup
+import qs.modules.ii.topLayer
 
 Scope {
     property bool barExtraCondition: true
@@ -49,7 +51,7 @@ Scope {
     }
 
     PanelLoader {
-        extraCondition: !Config.options.bar.vertical && barExtraCondition
+        extraCondition: !Config.options.bar.vertical && barExtraCondition && !GlobalStates.connectModeActive
         component: Bar {}
     }
     PanelLoader {
@@ -115,13 +117,15 @@ Scope {
         component: SessionScreen {}
     }
     PanelLoader {
+        extraCondition: !GlobalStates.connectModeActive
         component: SidebarPolicies {}
     }
     PanelLoader {
+        extraCondition: !GlobalStates.connectModeActive
         component: SidebarDashboard {}
     }
     PanelLoader {
-        extraCondition: Config.options.bar.vertical && barExtraCondition
+        extraCondition: Config.options.bar.vertical && barExtraCondition && !GlobalStates.connectModeActive
         component: VerticalBar {}
     }
     PanelLoader {
@@ -138,5 +142,9 @@ Scope {
     }
     PanelLoader {
         component: ScratchpadOverlay {}
+    }
+    PanelLoader {
+        extraCondition: GlobalStates.connectModeActive
+        component: TopLayer {}
     }
 }

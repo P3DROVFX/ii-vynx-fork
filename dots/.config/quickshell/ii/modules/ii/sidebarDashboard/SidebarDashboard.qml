@@ -16,129 +16,103 @@ Scope {
         return pos === "default" || pos === "right"; 
     }
 
-    PanelWindow {
-        id: panelWindow
-        visible: GlobalStates.sidebarRightOpen
+    // Loader guard: PanelWindow (Wayland surface) is never created in connect mode.
+    // The parent PanelLoader (IllogicalImpulseFamily) also guards at the Scope level,
+    // but this inner Loader provides an extra defensive layer to prevent any
+    // surface creation during mode-switch transitions.
+    Loader {
+        id: panelLoader
+        active: !GlobalStates.connectModeActive
+        sourceComponent: panelWindowComponent
+    }
 
-        function hide() {
-            GlobalStates.sidebarRightOpen = false;
-        }
+    Component {
+        id: panelWindowComponent
 
-        exclusiveZone: 0
-        implicitWidth: sidebarWidth
-        WlrLayershell.namespace: root.isOnRight ? "quickshell:sidebarRight" : "quickshell:sidebarLeft"
-        WlrLayershell.keyboardFocus: GlobalStates.sidebarRightOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
-        color: "transparent"
+        PanelWindow {
+            id: panelWindow
 
-        anchors {
-            top: true
-            left: !root.isOnRight
-            right: root.isOnRight
-            bottom: true
-        }
-
-        onVisibleChanged: {
-            if (visible) {
-                GlobalFocusGrab.addDismissable(panelWindow);
-            } else {
-                GlobalFocusGrab.removeDismissable(panelWindow);
+            function hide() {
+                GlobalStates.sidebarRightOpen = false;
             }
-        }
 
-        Connections {
-            target: GlobalFocusGrab
-            function onDismissed() {
-                panelWindow.hide();
+            visible: GlobalStates.sidebarRightOpen
+            exclusiveZone: 0
+            implicitWidth: sidebarWidth
+            WlrLayershell.namespace: root.isOnRight ? "quickshell:sidebarRight" : "quickshell:sidebarLeft"
+            WlrLayershell.keyboardFocus: GlobalStates.sidebarRightOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+            color: "transparent"
+
+            anchors {
+                top: true
+                left: !root.isOnRight
+                right: root.isOnRight
+                bottom: true
             }
-        }
 
-        Loader {
-            id: sidebarContentLoader
-
-            active: GlobalStates.sidebarRightOpen || Config?.options.sidebar.keepRightSidebarLoaded
-            sourceComponent: SidebarDashboardContent {}
-            
-            width: root.sidebarWidth - Appearance.sizes.hyprlandGapsOut - Appearance.sizes.elevationMargin
-            height: parent.height - (Appearance.sizes.hyprlandGapsOut * 2)
-            y: Appearance.sizes.hyprlandGapsOut
-
-            focus: GlobalStates.sidebarRightOpen
-            
-            state: root.isOnRight ? "right" : "left"
-            states: [
-                State {
-                    name: "right"
-                    AnchorChanges {
-                        target: sidebarContentLoader
-                        anchors.right: parent.right
-                        anchors.left: undefined
-                    }
-                    PropertyChanges {
-                        target: sidebarContentLoader
-                        anchors.rightMargin: Appearance.sizes.hyprlandGapsOut
-                        anchors.leftMargin: 0
-                    }
-                },
-                State {
-                    name: "left"
-                    AnchorChanges {
-                        target: sidebarContentLoader
-                        anchors.left: parent.left
-                        anchors.right: undefined
-                    }
-                    PropertyChanges {
-                        target: sidebarContentLoader
-                        anchors.leftMargin: Appearance.sizes.hyprlandGapsOut
-                        anchors.rightMargin: 0
-                    }
+            onVisibleChanged: {
+                if (visible) {
+                    GlobalFocusGrab.addDismissable(panelWindow);
+                } else {
+                    GlobalFocusGrab.removeDismissable(panelWindow);
                 }
-            ]
+            }
 
-            Keys.onPressed: event => {
-                if (event.key === Qt.Key_Escape) {
+            Connections {
+                target: GlobalFocusGrab
+                function onDismissed() {
                     panelWindow.hide();
                 }
             }
-        }
-    }
 
-    IpcHandler {
-        target: "sidebarRight"
+            Loader {
+                id: sidebarContentLoader
 
-        function toggle(): void {
-            GlobalStates.sidebarRightOpen = !GlobalStates.sidebarRightOpen;
-        }
+                active: GlobalStates.sidebarRightOpen || Config?.options.sidebar.keepRightSidebarLoaded
+                sourceComponent: SidebarDashboardContent {}
+                
+                width: root.sidebarWidth - Appearance.sizes.hyprlandGapsOut - Appearance.sizes.elevationMargin
+                height: parent.height - (Appearance.sizes.hyprlandGapsOut * 2)
+                y: Appearance.sizes.hyprlandGapsOut
 
-        function close(): void {
-            GlobalStates.sidebarRightOpen = false;
-        }
+                focus: GlobalStates.sidebarRightOpen
+                
+                state: root.isOnRight ? "right" : "left"
+                states: [
+                    State {
+                        name: "right"
+                        AnchorChanges {
+                            target: sidebarContentLoader
+                            anchors.right: parent.right
+                            anchors.left: undefined
+                        }
+                        PropertyChanges {
+                            target: sidebarContentLoader
+                            anchors.rightMargin: Appearance.sizes.hyprlandGapsOut
+                            anchors.leftMargin: 0
+                        }
+                    },
+                    State {
+                        name: "left"
+                        AnchorChanges {
+                            target: sidebarContentLoader
+                            anchors.left: parent.left
+                            anchors.right: undefined
+                        }
+                        PropertyChanges {
+                            target: sidebarContentLoader
+                            anchors.leftMargin: Appearance.sizes.hyprlandGapsOut
+                            anchors.rightMargin: 0
+                        }
+                    }
+                ]
 
-        function open(): void {
-            GlobalStates.sidebarRightOpen = true;
-        }
-    }
-
-    GlobalShortcut {
-        name: "sidebarRightToggle"
-        description: "Toggles right sidebar on press"
-        onPressed: {
-            GlobalStates.sidebarRightOpen = !GlobalStates.sidebarRightOpen;
-        }
-    }
-
-    GlobalShortcut {
-        name: "sidebarRightOpen"
-        description: "Opens right sidebar on press"
-        onPressed: {
-            GlobalStates.sidebarRightOpen = true;
-        }
-    }
-
-    GlobalShortcut {
-        name: "sidebarRightClose"
-        description: "Closes right sidebar on press"
-        onPressed: {
-            GlobalStates.sidebarRightOpen = false;
+                Keys.onPressed: event => {
+                    if (event.key === Qt.Key_Escape) {
+                        panelWindow.hide();
+                    }
+                }
+            }
         }
     }
 }
