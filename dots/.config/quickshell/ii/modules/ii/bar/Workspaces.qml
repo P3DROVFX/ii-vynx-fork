@@ -8,6 +8,7 @@ import QtQuick
 import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Shapes
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
@@ -19,6 +20,10 @@ Item {
     property bool vertical: false
     readonly property HyprlandMonitor monitor: Hyprland.monitorFor(root.QsWindow.window?.screen)
     readonly property Toplevel activeWindow: ToplevelManager.activeToplevel
+
+    readonly property var currentHyprlandMonitorData: HyprlandData.monitors.find(mon => mon.name === root.monitor?.name)
+    readonly property bool scratchpadOpen: !!(currentHyprlandMonitorData && currentHyprlandMonitorData.specialWorkspace && currentHyprlandMonitorData.specialWorkspace.name !== "")
+    readonly property int scratchpadWindowsCount: HyprlandData.windowList.filter(win => win.workspace && win.workspace.name && win.workspace.name.startsWith("special")).length
 
     readonly property bool useWorkspaceMap: Config.options.bar.workspaces.useWorkspaceMap
     readonly property list<int> workspaceMap: Config.options.bar.workspaces.workspaceMap
@@ -267,6 +272,15 @@ Item {
         width: root.vertical ? individualIconBoxHeight : (Config.options.bar.workspaces.useRandomShapeForActiveIndicator ? individualIconBoxHeight : indicatorLength)
         height: root.vertical ? (Config.options.bar.workspaces.useRandomShapeForActiveIndicator ? individualIconBoxHeight : indicatorLength) : individualIconBoxHeight
 
+        opacity: root.scratchpadOpen ? 0.0 : 1.0
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Appearance.animation.elementMoveFast.duration
+                easing.type: Appearance.animation.elementMoveFast.type
+                easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+            }
+        }
+
         sourceComponent: (Config.options.bar.workspaces.useMaterialShapeForActiveIndicator || Config.options.bar.workspaces.useRandomShapeForActiveIndicator) ? materialShapeComponent : rectangleComponent
 
         Component {
@@ -472,6 +486,15 @@ Item {
                 implicitHeight: root.vertical ? (wsBg.wsVisible ? itemSize : 0) : root.iconBoxWrapperSize
                 property bool wsVisible: root.isWorkspaceVisible(index)
 
+                opacity: root.scratchpadOpen && index !== root.workspaceIndexInGroup ? 0.35 : 1.0
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Appearance.animation.elementMoveFast.duration
+                        easing.type: Appearance.animation.elementMoveFast.type
+                        easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                    }
+                }
+
                 Pill {
                     property real stretchAmount: 12 // not using multiplier because it mulitplies multi-windowed workspaces A LOT
 
@@ -561,6 +584,17 @@ Item {
                 implicitWidth: root.vertical ? root.iconBoxWrapperSize : (Math.max(layout.implicitWidth + 8, root.iconBoxWrapperSize))
                 implicitHeight: root.vertical ? (Math.max(layout.implicitHeight + 8, root.iconBoxWrapperSize)) : root.iconBoxWrapperSize
 
+                readonly property bool isShowingScratchpad: root.scratchpadOpen && (index === root.workspaceIndexInGroup)
+
+                opacity: root.scratchpadOpen && !isShowingScratchpad ? 0.35 : 1.0
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Appearance.animation.elementMoveFast.duration
+                        easing.type: Appearance.animation.elementMoveFast.type
+                        easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                    }
+                }
+
                 Behavior on implicitWidth {
                     animation: Appearance.animation.elementResize.numberAnimation.createObject(this)
                 }
@@ -568,77 +602,166 @@ Item {
                     animation: Appearance.animation.elementResize.numberAnimation.createObject(this)
                 }
 
-                WorkspaceBackgroundIndicator {
-                    workspaceValue: workspaceOffset + workspaceGroup * workspacesShown + index + 1
-                    activeWorkspace: monitor?.activeWorkspace?.id === workspaceValue
+                Item {
+                    id: normalContentWrapper
+                    anchors.fill: parent
+
+                    opacity: background.isShowingScratchpad ? 0.0 : 1.0
+                    scale: background.isShowingScratchpad ? 0.8 : 1.0
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Appearance.animation.elementMoveFast.duration
+                            easing.type: Appearance.animation.elementMoveFast.type
+                            easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                        }
+                    }
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: Appearance.animation.elementMoveFast.duration
+                            easing.type: Appearance.animation.elementMoveFast.type
+                            easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                        }
+                    }
+
+                    WorkspaceBackgroundIndicator {
+                        workspaceValue: workspaceOffset + workspaceGroup * workspacesShown + index + 1
+                        activeWorkspace: monitor?.activeWorkspace?.id === workspaceValue
+                    }
+
+                    GridLayout {
+                        id: layout
+                        anchors.centerIn: parent
+                        columnSpacing: 0
+                        rowSpacing: 0
+                        columns: root.vertical ? 1 : 99
+                        rows: root.vertical ? 99 : 1
+
+                        Repeater {
+                            property int workspaceIndex: workspaceOffset + workspaceGroup * workspacesShown + index + 1
+                            model: root.showIcons ? root.monitorWindows?.filter(win => win.workspace === workspaceIndex).splice(0, Config.options.bar.workspaces.maxWindowCount) : []
+                            delegate: Item {
+                                Layout.alignment: Qt.AlignHCenter
+                                width: root.individualIconBoxHeight
+                                height: root.individualIconBoxHeight
+                                MaterialShape {
+                                    id: iconMask
+                                    width: Math.max(1, mainAppIcon.width)
+                                    height: Math.max(1, mainAppIcon.height)
+                                    shapeString: Config.options.appearance.icons.shapeMask
+                                    visible: false
+                                }
+
+                                IconImage {
+                                    id: mainAppIcon
+                                    Layout.alignment: Qt.AlignHCenter
+                                    anchors {
+                                        left: parent.left
+                                        top: parent.top
+                                        leftMargin: root.showNumbersByMs ? 15 : 2
+                                        topMargin: root.showNumbersByMs ? 15 : 2
+                                    }
+                                    source: modelData.icon
+                                    implicitSize: (root.individualIconBoxHeight * root.iconRatio) * (root.showNumbersByMs ? 1 / 1.5 : 1)
+
+                                    Behavior on anchors.leftMargin {
+                                        animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+                                    }
+                                    Behavior on anchors.topMargin {
+                                        animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+                                    }
+                                    Behavior on implicitSize {
+                                        animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+                                    }
+
+                                    layer.enabled: Config.options.appearance.icons.enableShapeMask
+                                    layer.effect: MultiEffect {
+                                        maskEnabled: true
+                                        maskSource: iconMask
+                                    }
+                                }
+                                Loader {
+                                    active: Config.options.bar.workspaces.monochromeIcons
+                                    anchors.fill: mainAppIcon
+                                    sourceComponent: Item {
+                                        Desaturate {
+                                            id: desaturatedIcon
+                                            visible: false
+                                            anchors.fill: parent
+                                            source: mainAppIcon
+                                            desaturation: 0.8
+                                        }
+                                        ColorOverlay {
+                                            anchors.fill: desaturatedIcon
+                                            source: desaturatedIcon
+                                            color: ColorUtils.transparentize(Appearance.colors.colOnLayer1, 0.9)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
-                GridLayout {
-                    id: layout
+                Item {
+                    id: scratchpadIndicator
                     anchors.centerIn: parent
-                    columnSpacing: 0
-                    rowSpacing: 0
-                    columns: root.vertical ? 1 : 99
-                    rows: root.vertical ? 99 : 1
+                    width: root.individualIconBoxHeight + 2
+                    height: root.individualIconBoxHeight + 2
 
-                    Repeater {
-                        property int workspaceIndex: workspaceOffset + workspaceGroup * workspacesShown + index + 1
-                        model: root.showIcons ? root.monitorWindows?.filter(win => win.workspace === workspaceIndex).splice(0, Config.options.bar.workspaces.maxWindowCount) : []
-                        delegate: Item {
-                            Layout.alignment: Qt.AlignHCenter
-                            width: root.individualIconBoxHeight
-                            height: root.individualIconBoxHeight
-                            MaterialShape {
-                                id: iconMask
-                                width: Math.max(1, mainAppIcon.width)
-                                height: Math.max(1, mainAppIcon.height)
-                                shapeString: Config.options.appearance.icons.shapeMask
-                                visible: false
-                            }
+                    visible: opacity > 0.0
+                    opacity: background.isShowingScratchpad ? 1.0 : 0.0
+                    scale: background.isShowingScratchpad ? 1.0 : 0.7
 
-                            IconImage {
-                                id: mainAppIcon
-                                Layout.alignment: Qt.AlignHCenter
-                                anchors {
-                                    left: parent.left
-                                    top: parent.top
-                                    leftMargin: root.showNumbersByMs ? 15 : 2
-                                    topMargin: root.showNumbersByMs ? 15 : 2
-                                }
-                                source: modelData.icon
-                                implicitSize: (root.individualIconBoxHeight * root.iconRatio) * (root.showNumbersByMs ? 1 / 1.5 : 1)
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Appearance.animation.elementMoveFast.duration
+                            easing.type: Appearance.animation.elementMoveFast.type
+                            easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                        }
+                    }
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: Appearance.animation.elementMoveFast.duration
+                            easing.type: Appearance.animation.elementMoveFast.type
+                            easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                        }
+                    }
 
-                                Behavior on anchors.leftMargin {
-                                    animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
-                                }
-                                Behavior on anchors.topMargin {
-                                    animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
-                                }
-                                Behavior on implicitSize {
-                                    animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
-                                }
+                    // Background shape (colTertiary)
+                    MaterialShape {
+                        id: shapeContainer
+                        anchors.fill: parent
+                        shapeString: "Flower"
+                        color: Appearance.colors.colTertiary
+                    }
 
-                                layer.enabled: Config.options.appearance.icons.enableShapeMask
-                                layer.effect: MultiEffect {
-                                    maskEnabled: true
-                                    maskSource: iconMask
-                                }
-                            }
-                            Loader {
-                                active: Config.options.bar.workspaces.monochromeIcons
-                                anchors.fill: mainAppIcon
-                                sourceComponent: Item {
-                                    Desaturate {
-                                        id: desaturatedIcon
-                                        visible: false
-                                        anchors.fill: parent
-                                        source: mainAppIcon
-                                        desaturation: 0.8
+                    // Pulse/glowing window representation dots inside the shape
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 3
+                        z: 2
+                        Repeater {
+                            model: Math.max(1, Math.min(3, root.scratchpadWindowsCount))
+                            delegate: Rectangle {
+                                width: 4
+                                height: 4
+                                radius: 2
+                                color: Appearance.colors.colOnTertiary
+                                opacity: root.scratchpadWindowsCount === 0 ? 0.4 : 1.0
+
+                                SequentialAnimation on opacity {
+                                    loops: Animation.Infinite
+                                    running: root.scratchpadOpen
+                                    NumberAnimation {
+                                        to: 0.3
+                                        duration: 1500
+                                        easing.type: Easing.InOutQuad
                                     }
-                                    ColorOverlay {
-                                        anchors.fill: desaturatedIcon
-                                        source: desaturatedIcon
-                                        color: ColorUtils.transparentize(Appearance.colors.colOnLayer1, 0.9)
+                                    NumberAnimation {
+                                        to: root.scratchpadWindowsCount === 0 ? 0.4 : 1.0
+                                        duration: 1500
+                                        easing.type: Easing.InOutQuad
                                     }
                                 }
                             }

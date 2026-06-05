@@ -4,6 +4,7 @@ import qs.modules.common.widgets
 import qs.modules.common.models
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Shapes
 import Quickshell
 import Quickshell.Hyprland
 
@@ -11,6 +12,9 @@ Item {
     id: root
     property bool vertical: false
     readonly property HyprlandMonitor monitor: Hyprland.monitorFor(root.QsWindow.window?.screen)
+    
+    readonly property var currentHyprlandMonitorData: HyprlandData.monitors.find(mon => mon.name === root.monitor?.name)
+    readonly property bool scratchpadOpen: !!(currentHyprlandMonitorData && currentHyprlandMonitorData.specialWorkspace && currentHyprlandMonitorData.specialWorkspace.name !== "")
     
     readonly property int workspacesShown: Config.options.bar.workspaces.shown
     readonly property int activeWsId: monitor?.activeWorkspace?.id ?? 1
@@ -124,6 +128,15 @@ Item {
         width: root.vertical ? dotSize : (Config.options.bar.workspaces.useRandomShapeForActiveIndicator ? dotSize : Math.abs(animX2 - animX1) + dotSize)
         height: root.vertical ? (Config.options.bar.workspaces.useRandomShapeForActiveIndicator ? dotSize : Math.abs(animX2 - animX1) + dotSize) : dotSize
 
+        opacity: root.scratchpadOpen ? 0.0 : 1.0
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Appearance.animation.elementMoveFast.duration
+                easing.type: Appearance.animation.elementMoveFast.type
+                easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+            }
+        }
+
         sourceComponent: (Config.options.bar.workspaces.useMaterialShapeForActiveIndicator || Config.options.bar.workspaces.useRandomShapeForActiveIndicator) ? materialShapeComponent : rectangleComponent
 
         Component {
@@ -172,6 +185,17 @@ Item {
                 readonly property int wsId: modelData
                 readonly property bool isActive: wsId === root.activeWsId
                 readonly property bool isOccupied: root.workspaceOccupied[wsId] ?? false
+
+                readonly property bool isShowingScratchpad: root.scratchpadOpen && isActive
+
+                opacity: root.scratchpadOpen && !isShowingScratchpad ? 0.35 : 1.0
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Appearance.animation.elementMoveFast.duration
+                        easing.type: Appearance.animation.elementMoveFast.type
+                        easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                    }
+                }
                 
                 width: 18
                 height: 18
@@ -184,32 +208,109 @@ Item {
                     cursorShape: Qt.PointingHandCursor
                 }
                 
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: isOccupied ? 8 : 4
-                    height: width
-                    radius: width / 2
-                    color: {
-                        if (isActive) return "transparent";
-                        if (hover.hovered) return Appearance.colors.colPrimary;
-                        return isOccupied ? Appearance.colors.colOnSurface : Appearance.colors.colOnSurfaceVariant;
+                Item {
+                    id: normalContentWrapper
+                    anchors.fill: parent
+
+                    opacity: dot.isShowingScratchpad ? 0.0 : 1.0
+                    scale: dot.isShowingScratchpad ? 0.8 : 1.0
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Appearance.animation.elementMoveFast.duration
+                            easing.type: Appearance.animation.elementMoveFast.type
+                            easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                        }
                     }
-                    opacity: (isOccupied || hover.hovered) ? 1.0 : 0.4
-                    
-                    Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
-                    Behavior on color { ColorAnimation { duration: 200 } }
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: Appearance.animation.elementMoveFast.duration
+                            easing.type: Appearance.animation.elementMoveFast.type
+                            easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                        }
+                    }
+
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: isOccupied ? 8 : 4
+                        height: width
+                        radius: width / 2
+                        color: {
+                            if (isActive) return "transparent";
+                            if (hover.hovered) return Appearance.colors.colPrimary;
+                            return isOccupied ? Appearance.colors.colOnSurface : Appearance.colors.colOnSurfaceVariant;
+                        }
+                        opacity: (isOccupied || hover.hovered) ? 1.0 : 0.4
+
+                        Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
+                        Behavior on color { ColorAnimation { duration: 200 } }
+                    }
+
+                    StyledText {
+                        anchors.centerIn: parent
+                        text: isActive ? "-" : (dot.wsId).toString()
+                        font.pixelSize: isActive ? 14 : 10
+                        font.weight: isActive ? Font.Bold : Font.Normal
+                        font.family: Appearance.font.family.numbers
+                        color: Appearance.colors.colOnPrimary
+                        opacity: isActive ? 1.0 : 0.0
+
+                        Behavior on opacity { NumberAnimation { duration: 150 } }
+                    }
                 }
 
-                StyledText {
-                    anchors.centerIn: parent
-                    text: isActive ? "-" : (dot.wsId).toString()
-                    font.pixelSize: isActive ? 14 : 10
-                    font.weight: isActive ? Font.Bold : Font.Normal
-                    font.family: Appearance.font.family.numbers
-                    color: Appearance.colors.colOnPrimary
-                    opacity: isActive ? 1.0 : 0.0
-                    
-                    Behavior on opacity { NumberAnimation { duration: 150 } }
+                Item {
+                    id: scratchpadIndicator
+                    anchors.fill: parent
+
+                    visible: opacity > 0.0
+                    opacity: dot.isShowingScratchpad ? 1.0 : 0.0
+                    scale: dot.isShowingScratchpad ? 1.0 : 0.7
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Appearance.animation.elementMoveFast.duration
+                            easing.type: Appearance.animation.elementMoveFast.type
+                            easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                        }
+                    }
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: Appearance.animation.elementMoveFast.duration
+                            easing.type: Appearance.animation.elementMoveFast.type
+                            easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                        }
+                    }
+
+                    Rectangle {
+                        id: scratchpadIndicatorBg
+                        anchors.fill: parent
+                        radius: width / 2
+                        color: Appearance.colors.colLayer4
+
+                        Shape {
+                            anchors.fill: parent
+                            layer.enabled: true
+                            layer.smooth: true
+
+                            ShapePath {
+                                strokeColor: Appearance.colors.colTertiary
+                                strokeWidth: 1.5
+                                strokeStyle: ShapePath.DashLine
+                                dashPattern: [3, 3]
+                                fillColor: "transparent"
+
+                                PathAngleArc {
+                                    centerX: scratchpadIndicatorBg.width / 2
+                                    centerY: scratchpadIndicatorBg.height / 2
+                                    radiusX: scratchpadIndicatorBg.width / 2 - 0.75
+                                    radiusY: scratchpadIndicatorBg.height / 2 - 0.75
+                                    startAngle: 0
+                                    sweepAngle: 360
+                                }
+                            }
+                        }
+                    }
                 }
 
                 MouseArea {
