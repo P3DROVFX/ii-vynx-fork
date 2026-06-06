@@ -24,7 +24,6 @@ Singleton {
     property bool overviewOpen: false
     property bool searchOnlyMode: false
 
-    // Published by Background.qml for the window-zoom transition layer
     // scaleValue: animated 1.0 → ~0.85 during overview open (zoomOutStyle 0 only)
     // originX/Y: scale transform center in screen coordinates
     property real overviewZoomScale: 1.0
@@ -48,6 +47,8 @@ Singleton {
     property string activeLeftSidebarMonitor: ""
     property string activeRightSidebarMonitor: ""
     property bool policiesExtended: false
+    property bool policiesPinned: false
+    property bool policiesDetached: false
 
     // Bluetooth connection popup
     property bool bluetoothConnectionPopupOpen: false
@@ -172,17 +173,17 @@ Singleton {
             return 0;
         switch (Config.options.sidebar.position) {
         case "default":
-            return policiesWidth;
+            return policiesDetached ? 0 : policiesWidth;
         case "inverted":
             return dashboardWidth;
         case "left":
             if (policiesPanelOpen)
-                return policiesWidth;
+                return policiesDetached ? 0 : policiesWidth;
             if (dashboardPanelOpen)
                 return dashboardWidth;
             return 0;
         default:
-            return policiesWidth;
+            return policiesDetached ? 0 : policiesWidth;
         }
     }
 
@@ -193,10 +194,10 @@ Singleton {
         case "default":
             return dashboardWidth;
         case "inverted":
-            return policiesWidth;
+            return policiesDetached ? 0 : policiesWidth;
         case "right":
             if (policiesPanelOpen)
-                return policiesWidth;
+                return policiesDetached ? 0 : policiesWidth;
             if (dashboardPanelOpen)
                 return dashboardWidth;
             return 0;

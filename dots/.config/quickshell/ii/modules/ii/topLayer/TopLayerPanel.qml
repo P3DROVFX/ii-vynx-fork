@@ -39,7 +39,7 @@ PanelWindow {
 
     readonly property bool leftSidebarOpenOnMonitor: GlobalStates.sidebarLeftOpen && screen.name === GlobalStates.activeLeftSidebarMonitor
     readonly property bool rightSidebarOpenOnMonitor: GlobalStates.sidebarRightOpen && screen.name === GlobalStates.activeRightSidebarMonitor
-    readonly property bool leftSidebarActiveOnMonitor: GlobalStates.animatedLeftSidebarWidth > 0 && screen.name === GlobalStates.activeLeftSidebarMonitor
+    readonly property bool leftSidebarActiveOnMonitor: GlobalStates.animatedLeftSidebarWidth > 0 && screen.name === GlobalStates.activeLeftSidebarMonitor && !GlobalStates.policiesDetached
     readonly property bool rightSidebarActiveOnMonitor: GlobalStates.animatedRightSidebarWidth > 0 && screen.name === GlobalStates.activeRightSidebarMonitor
 
     onLeftSidebarActiveOnMonitorChanged: {
@@ -451,24 +451,75 @@ PanelWindow {
         }
     }
 
+    // Space reserver for pinned sidebar in Connect Mode
+    PanelWindow {
+        id: pinSpaceReserver
+        WlrLayershell.namespace: "quickshell:pinReserver"
+        exclusionMode: ExclusionMode.Normal
+        color: "transparent"
+        visible: GlobalStates.connectModeActive && GlobalStates.policiesPinned && topPanel.leftSidebarActiveOnMonitor
+        anchors {
+            top: true
+            bottom: true
+            left: true
+        }
+        implicitWidth: GlobalStates.policiesWidth
+        exclusiveZone: implicitWidth - (topPanel.barOnLeft ? 0 : (Appearance.sizes.hyprlandGapsOut + Appearance.sizes.elevationMargin))
+    }
+
     // Left Sidebar Policies Content
     Rectangle {
         id: leftSidebar
         x: -(width - GlobalStates.animatedLeftSidebarWidth)
         y: (!topPanel.barVertical && !topPanel.barBottom) ? Appearance.sizes.barHeight : 0
-        width: GlobalStates.policiesWidth
+        width: Math.max(GlobalStates.policiesWidth, GlobalStates.animatedLeftSidebarWidth)
         height: (!topPanel.barVertical) ? (parent.height - Appearance.sizes.barHeight) : parent.height
         color: Config.options.bar.expressiveColors ? activeTheme.barBackground : Appearance.colors.colLayer0
         border.width: GlobalStates.connectModeActive ? 0 : 1
         border.color: GlobalStates.connectModeActive ? "transparent" : Appearance.colors.colLayer0Border
         radius: GlobalStates.connectModeActive ? 0 : Appearance.rounding.screenRounding - Appearance.sizes.hyprlandGapsOut + 1
-        visible: topPanel.leftSidebarActiveOnMonitor
+        visible: topPanel.leftSidebarActiveOnMonitor && !GlobalStates.policiesDetached
 
         Loader {
-            active: true
+            active: !GlobalStates.policiesDetached
             anchors.fill: parent
             sourceComponent: Policies.SidebarPoliciesContent {
                 scopeRoot: topPanel
+            }
+        }
+    }
+
+    // Detached Sidebar Policies Window
+    Loader {
+        active: GlobalStates.connectModeActive && GlobalStates.policiesDetached
+        sourceComponent: FloatingWindow {
+            color: "transparent"
+            visible: true
+            width: GlobalStates.policiesWidth
+            height: topPanel.height - (Appearance.sizes.hyprlandGapsOut * 2)
+            
+            Rectangle {
+                anchors.fill: parent
+                focus: true
+                color: Config.options.bar.expressiveColors ? activeTheme.barBackground : Appearance.colors.colLayer0
+                radius: Appearance.rounding.screenRounding - Appearance.sizes.hyprlandGapsOut + 1
+                border.width: 1
+                border.color: Appearance.colors.colLayer0Border
+                
+                Loader {
+                    anchors.fill: parent
+                    active: true
+                    sourceComponent: Policies.SidebarPoliciesContent {
+                        scopeRoot: topPanel
+                    }
+                }
+                
+                Keys.onPressed: (event) => {
+                    if (event.modifiers === Qt.ControlModifier && event.key === Qt.Key_D) {
+                        GlobalStates.policiesDetached = false;
+                        event.accepted = true;
+                    }
+                }
             }
         }
     }
@@ -584,6 +635,15 @@ PanelWindow {
 
     Connections {
         target: GlobalStates
+        function onPoliciesPinnedChanged() {
+            if (GlobalStates.sidebarLeftOpen && topPanel.screen.name === GlobalStates.activeLeftSidebarMonitor) {
+                if (GlobalStates.policiesPinned) {
+                    GlobalFocusGrab.removeDismissable(topPanel);
+                } else {
+                    GlobalFocusGrab.addDismissable(topPanel);
+                }
+            }
+        }
         function onSidebarRightOpenChanged() {
             if (GlobalStates.sidebarRightOpen && topPanel.screen.name === GlobalStates.activeRightSidebarMonitor) {
                 GlobalFocusGrab.addDismissable(topPanel);
@@ -593,7 +653,9 @@ PanelWindow {
         }
         function onSidebarLeftOpenChanged() {
             if (GlobalStates.sidebarLeftOpen && topPanel.screen.name === GlobalStates.activeLeftSidebarMonitor) {
-                GlobalFocusGrab.addDismissable(topPanel);
+                if (!GlobalStates.policiesPinned) {
+                    GlobalFocusGrab.addDismissable(topPanel);
+                }
             } else {
                 GlobalFocusGrab.removeDismissable(topPanel);
             }
@@ -607,7 +669,9 @@ PanelWindow {
                 GlobalStates.sidebarRightOpen = false;
             }
             if (GlobalStates.sidebarLeftOpen && topPanel.screen.name === GlobalStates.activeLeftSidebarMonitor) {
-                GlobalStates.sidebarLeftOpen = false;
+                if (!GlobalStates.policiesPinned) {
+                    GlobalStates.sidebarLeftOpen = false;
+                }
             }
         }
     }
@@ -619,6 +683,16 @@ PanelWindow {
             if (event.key === Qt.Key_Escape) {
                 GlobalStates.sidebarRightOpen = false;
                 GlobalStates.sidebarLeftOpen = false;
+                event.accepted = true;
+            }
+            if (event.modifiers === Qt.ControlModifier && leftSidebarOpenOnMonitor) {
+                if (event.key === Qt.Key_O) {
+                    GlobalStates.policiesExtended = !GlobalStates.policiesExtended;
+                } else if (event.key === Qt.Key_D) {
+                    GlobalStates.policiesDetached = !GlobalStates.policiesDetached;
+                } else if (event.key === Qt.Key_P) {
+                    GlobalStates.policiesPinned = !GlobalStates.policiesPinned;
+                }
                 event.accepted = true;
             }
         }

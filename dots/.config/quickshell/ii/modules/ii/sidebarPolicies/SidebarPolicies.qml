@@ -84,12 +84,20 @@ Scope { // Scope
             sidebarContent.parent = null; // Detach content from sidebar
             sidebarLoader.active = false; // Unload sidebar
             detachedSidebarLoader.active = true; // Load detached window
-            detachedSidebarLoader.item.contentParent.children = [sidebarContent];
+            Qt.callLater(() => {
+                if (detachedSidebarLoader.item) {
+                    detachedSidebarLoader.item.contentParent.children = [sidebarContent];
+                }
+            });
         } else {
             sidebarContent.parent = null; // Detach content from window
             detachedSidebarLoader.active = false; // Unload detached window
             sidebarLoader.active = true; // Load sidebar
-            sidebarLoader.item.contentParent.children = [sidebarContent];
+            Qt.callLater(() => {
+                if (sidebarLoader.item) {
+                    sidebarLoader.item.contentParent.children = [sidebarContent];
+                }
+            });
         }
     }
 
@@ -174,6 +182,7 @@ Scope { // Scope
 
             Rectangle {
                 id: sidebarLeftBackground
+                focus: GlobalStates.sidebarLeftOpen
                 color: Config.options.bar.expressiveColors ? activeTheme.barBackground : Appearance.colors.colLayer0
                 border.width: root.pin ? 0 : 1
                 border.color: root.pin ? "transparent" : Appearance.colors.colLayer0Border
@@ -328,6 +337,7 @@ Scope { // Scope
             Rectangle {
                 id: detachedSidebarBackground
                 anchors.fill: parent
+                focus: true
                 color: Config.options.bar.expressiveColors ? activeTheme.barBackground : Appearance.colors.colLayer0
 
                 Keys.onPressed: (event) => {
