@@ -326,7 +326,17 @@ Item {
             StyledText {
                 id: pctLabel
                 anchors.centerIn: parent
-                text: Math.round(rs.percentage * 100) + "%"
+                text: {
+                    if (rs.iconName === "thermostat") {
+                        if (Config.options.bar.weather.useUSCS) {
+                            return Math.round((rs.percentage * 100) * 1.8 + 32) + "°F";
+                        } else {
+                            return Math.round(rs.percentage * 100) + "°C";
+                        }
+                    } else {
+                        return Math.round(rs.percentage * 100) + "%";
+                    }
+                }
                 font.pixelSize: 8
                 font.weight: Font.Black
                 color: rs.currentOnColor

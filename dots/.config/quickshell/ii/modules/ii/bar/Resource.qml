@@ -73,7 +73,17 @@ Item {
                 anchors.centerIn: parent
                 color: root.colorText
                 font.pixelSize: Appearance.font.pixelSize.small
-                text: `${Math.round(percentage * 100).toString()}%`
+                text: {
+                    if (root.iconName === "thermostat") {
+                        if (Config.options.bar.weather.useUSCS) {
+                            return Math.round((root.percentage * 100) * 1.8 + 32) + "°F";
+                        } else {
+                            return Math.round(root.percentage * 100) + "°C";
+                        }
+                    } else {
+                        return `${Math.round(root.percentage * 100).toString()}%`;
+                    }
+                }
             }
 
             Behavior on implicitWidth {

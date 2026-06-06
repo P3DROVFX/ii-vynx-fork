@@ -219,7 +219,9 @@ StyledPopup {
                                 color: Appearance.colors.colPrimary
                             }
                             StyledText {
-                                text: Math.round(ResourceUsage.cpuTemp) + "°C"
+                                text: Config.options.bar.weather.useUSCS
+                                      ? Math.round(ResourceUsage.cpuTemp * 1.8 + 32) + "°F"
+                                      : Math.round(ResourceUsage.cpuTemp) + "°C"
                                 font.pixelSize: Appearance.font.pixelSize.small
                                 font.weight: Font.Bold
                                 color: Appearance.colors.colOnLayer1
@@ -292,7 +294,9 @@ StyledPopup {
                                 color: Appearance.colors.colPrimary
                             }
                             StyledText {
-                                text: Math.round(ResourceUsage.gpuTemp) + "°C"
+                                text: Config.options.bar.weather.useUSCS
+                                      ? Math.round(ResourceUsage.gpuTemp * 1.8 + 32) + "°F"
+                                      : Math.round(ResourceUsage.gpuTemp) + "°C"
                                 font.pixelSize: Appearance.font.pixelSize.small
                                 font.weight: Font.Bold
                                 color: Appearance.colors.colOnLayer1
