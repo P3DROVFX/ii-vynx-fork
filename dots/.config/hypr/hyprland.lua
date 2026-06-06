@@ -1,18 +1,17 @@
 -- This file sources other files in `hyprland` and `custom` folders
 -- You wanna add your stuff in files in `custom`
 
+-- Internal stuff --
+require("hyprland.lib")
+require("hyprland.services")
+
 local function safe_require(module_name)
-    package.loaded[module_name] = nil
     local ok, err = pcall(require, module_name)
     if not ok then
         hl.exec_cmd("notify-send 'Hyprland Lua Error' 'Failed to load " .. module_name .. ": " .. tostring(err):gsub("'", "\\'") .. "' -u critical -a 'Hyprland'")
     end
     return ok
 end
-
--- Internal stuff --
-safe_require("hyprland.lib")
-safe_require("hyprland.services")
 
 -- Environment variables --
 safe_require("hyprland.env")
@@ -44,12 +43,14 @@ if is_file_exists(HOME .. "/.config/hypr/custom/keybinds.lua") then
     safe_require("custom.keybinds")
 end
 
--- nwg-displays support: re-add the files if it updates later
-safe_require("workspaces")
-safe_require("monitors")
+-- nwg-displays support --
+if is_file_exists(HOME .. "/.config/hypr/workspaces.lua") then
+    require("workspaces")
+end
+if is_file_exists(HOME .. "/.config/hypr/monitors.lua") then
+    require("monitors")
+end
 
 -- Shell overrides --
 safe_require("hyprland.shellOverrides.main")
 
--- hyprmon: managed monitor profile include
-safe_require("hyprmon")
