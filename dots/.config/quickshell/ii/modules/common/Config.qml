@@ -612,6 +612,9 @@ Singleton {
                     property bool enableBluetoothConnectionPopup: true
                     property bool enableKeyboardLayoutTransitionPopup: true
                 }
+                property JsonObject keyboardLayout: JsonObject {
+                    property bool uppercaseLayout: false
+                }
                 property string bluetoothDevicesLayout: "expressive" // Options: classic, expressive
                 property JsonObject sizes: JsonObject {
                     property int height: 40 // horizontal mode

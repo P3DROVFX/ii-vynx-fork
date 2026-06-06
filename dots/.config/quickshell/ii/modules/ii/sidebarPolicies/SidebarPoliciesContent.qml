@@ -34,10 +34,36 @@ Item {
     property var tabButtonList: activeTabs.map(t => ({ icon: t.icon, name: t.name }))
     property int tabCount: activeTabs.length
 
+    function validateTabIndex() {
+        if (!Persistent.ready) return;
+        var t = Persistent.states.sidebar.policies.tab;
+        if (tabCount > 0) {
+            if (t < 0 || t >= tabCount) {
+                Persistent.states.sidebar.policies.tab = 0;
+            }
+        } else {
+            if (t !== 0) {
+                Persistent.states.sidebar.policies.tab = 0;
+            }
+        }
+    }
+
     onActiveTabsChanged: {
-        // Ensure the current tab index is still valid when tabs are enabled/disabled
-        if (Persistent.states.sidebar.policies.tab >= tabCount) {
-            Persistent.states.sidebar.policies.tab = Math.max(0, tabCount - 1)
+        root.validateTabIndex()
+    }
+
+    Connections {
+        target: Persistent
+        function onReadyChanged() {
+            root.validateTabIndex()
+        }
+    }
+
+    Connections {
+        target: Persistent.states.sidebar.policies
+        ignoreUnknownSignals: true
+        function onTabChanged() {
+            root.validateTabIndex()
         }
     }
 
@@ -125,12 +151,13 @@ Item {
                         }
                     }
                 }
-                
-                // Show placeholder if no tabs are active
-                Loader {
-                    active: root.activeTabs.length === 0
-                    sourceComponent: placeholder
-                }
+            }
+
+            // Show placeholder if no tabs are active
+            Loader {
+                anchors.fill: parent
+                active: root.activeTabs.length === 0
+                sourceComponent: placeholder
             }
         }
 

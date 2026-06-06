@@ -180,6 +180,7 @@ else:
     term_colors['ansi8'] = term_colors['term8']        # dark grey
     term_colors['ansi15'] = term_colors['term0']       # light white
 
+
 if args.debug == False:
     print(f"$darkmode: {darkmode};")
     print(f"$transparent: {transparent};")

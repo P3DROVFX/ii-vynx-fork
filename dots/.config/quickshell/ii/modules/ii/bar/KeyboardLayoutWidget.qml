@@ -10,6 +10,7 @@ import Quickshell.Io
 MouseArea {
     id: root
     property bool vertical: false
+    property bool uppercaseLayout: Config.options.bar.keyboardLayout.uppercaseLayout
 
     readonly property bool hasMultipleLayouts: HyprlandXkb.layoutCodes.length > 1
 
@@ -24,10 +25,11 @@ MouseArea {
     function abbreviateLayoutCode(fullCode) {
         if (!fullCode)
             return "";
-        return fullCode.split(':').map(layout => {
+        let abbr = fullCode.split(':').map(layout => {
             const baseLayout = layout.split('-')[0];
             return baseLayout.slice(0, 2);
-        }).join('\n').toUpperCase();
+        }).join('\n')
+        return root.uppercaseLayout ? abbr.toUpperCase() : abbr.toLowerCase();
     }
 
     Process {

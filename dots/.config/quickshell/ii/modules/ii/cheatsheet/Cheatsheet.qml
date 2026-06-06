@@ -126,6 +126,25 @@ Scope {
                 }
             }
 
+            onVisibleChanged: {
+                if (visible) {
+                    initialFocusTimer.restart();
+                }
+            }
+
+            Timer {
+                id: initialFocusTimer
+                interval: 50
+                repeat: false
+                onTriggered: {
+                    if (swipeView.currentItem && swipeView.currentItem.status === Loader.Ready && swipeView.currentItem.item) {
+                        swipeView.currentItem.item.forceActiveFocus();
+                    } else if (swipeView.currentItem) {
+                        swipeView.currentItem.forceActiveFocus();
+                    }
+                }
+            }
+
             Component.onCompleted: {
                 registerGrabTimer.start();
             }
@@ -161,22 +180,24 @@ Scope {
                 Keys.onPressed: event => {
                     if (event.key === Qt.Key_Escape) {
                         cheatsheetRoot.hide();
-                    } else if (event.key === Qt.Key_Slash) {
-                        swipeView.currentItem.forceActiveFocus();
                         event.accepted = true;
-                    }
-                    if (event.modifiers === Qt.ControlModifier) {
+                    } else if (event.key === Qt.Key_Slash) {
+                        if (swipeView.currentItem && swipeView.currentItem.item) {
+                            swipeView.currentItem.item.forceActiveFocus();
+                        }
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Tab) {
+                        tabBar.setCurrentIndex((tabBar.currentIndex + 1) % root.tabButtonList.length);
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Backtab) {
+                        tabBar.setCurrentIndex((tabBar.currentIndex - 1 + root.tabButtonList.length) % root.tabButtonList.length);
+                        event.accepted = true;
+                    } else if (event.modifiers === Qt.ControlModifier) {
                         if (event.key === Qt.Key_PageDown) {
                             tabBar.incrementCurrentIndex();
                             event.accepted = true;
                         } else if (event.key === Qt.Key_PageUp) {
                             tabBar.decrementCurrentIndex();
-                            event.accepted = true;
-                        } else if (event.key === Qt.Key_Tab) {
-                            tabBar.setCurrentIndex((tabBar.currentIndex + 1) % root.tabButtonList.length);
-                            event.accepted = true;
-                        } else if (event.key === Qt.Key_Backtab) {
-                            tabBar.setCurrentIndex((tabBar.currentIndex - 1 + root.tabButtonList.length) % root.tabButtonList.length);
                             event.accepted = true;
                         }
                     }
@@ -184,7 +205,6 @@ Scope {
 
                 RippleButton {
                     id: closeButton
-                    focus: cheatsheetRoot.visible
                     implicitWidth: 40
                     implicitHeight: 40
                     buttonRadius: Appearance.rounding.full
@@ -242,6 +262,9 @@ Scope {
                         currentIndex: Persistent.states.cheatsheet.tabIndex
                         onCurrentIndexChanged: {
                             Persistent.states.cheatsheet.tabIndex = currentIndex;
+                            if (currentItem && currentItem.status === Loader.Ready && currentItem.item) {
+                                currentItem.item.forceActiveFocus();
+                            }
                         }
 
                         implicitWidth: Math.max.apply(null, contentChildren.map(child => child.implicitWidth || 0))
@@ -271,6 +294,12 @@ Scope {
                                 active: !_lazy || swipeView.currentIndex === index || _wasSeen
                                 onActiveChanged: if (active)
                                     _wasSeen = true
+
+                                onStatusChanged: {
+                                    if (status === Loader.Ready && swipeView.currentIndex === index && cheatsheetRoot.visible) {
+                                        item.forceActiveFocus();
+                                    }
+                                }
 
                                 asynchronous: _lazy
                                 source: {

@@ -22,7 +22,7 @@ graph TD
     subgraph LookFeel ["1. Look & Feel"]
         PresetsPage[Presets]
         ColorsPage[Colors & Themes]
-        BarPage[Bar Positioning]
+        BarPage[Bar & Status Bar Widgets]
         BackgroundPage[Backgrounds]
         InterfacePage[Interface & Fonts]
     end
@@ -124,8 +124,8 @@ Consolidates all system themes, engine controls, and Matugen generator propertie
     *   *Random: Konachan*: Triggers random download script (visible if weeb policy == 1)
     *   *Random: osu! seasonal*: Triggers random download script (visible if weeb policy == 1)
 
-#### Page 3: Bar Positioning (`BarPositionConfig.qml`)
-Manages the positioning, geometry, and base visibility of the shell status bar.
+#### Page 3: Bar & Status Bar Widgets (`BarConfig.qml`)
+Manages the positioning, geometry, styling, and individual component widgets of the status bar.
 *   **Section: Geometry**
     *   *Bar height* (`Config.options.bar.sizes.height`): SpinBox (30 to 50px)
     *   *Bar width* (`Config.options.bar.sizes.width`): SpinBox (30 to 50px)
@@ -138,6 +138,48 @@ Manages the positioning, geometry, and base visibility of the shell status bar.
     *   *Bar background style* (`Config.options.bar.barBackgroundStyle`): Visible, Adaptive, Transparent (SelectionArray)
     *   *Expressive bar solid colors* (`Config.options.bar.expressiveColors`): Switch
     *   *Expressive color theme* (`Config.options.bar.expressiveColorTheme`): Content, Vibrant, Secondary, Surface (SelectionArray, enabled if expressive colors active)
+*   **Section: Bar Component Styles**
+    *   *Status bar sub-components style settings* (`Config.options.bar.styles.*`): Selections for Clock, Media, Notification, Utility Buttons, Workspaces, Weather, Dashboard, Resources, Policies, Power, Battery, Systray, Bluetooth, Keyboard, Sports (SelectionArrays for Classic/Expressive where applicable).
+*   **Section: Active Window & Media Player**
+    *   *Active Window: Use fixed size* (`Config.options.bar.activeWindow.fixedSize`): Switch
+    *   *Media: Expressive media popup* (`Config.options.bar.mediaPlayer.expressivePopup`): Switch
+    *   *Media: Use fixed size* (`Config.options.bar.mediaPlayer.useFixedSize`): Switch
+    *   *Media: Custom size* (`Config.options.bar.mediaPlayer.customSize`): SpinBox (100 to 500)
+    *   *Media: Enable artwork* (`Config.options.bar.mediaPlayer.artwork.enable`): Switch
+    *   *Media: Enable lyrics* (`Config.options.bar.mediaPlayer.lyrics.enable`): Switch
+    *   *Media: Lyrics width* (`Config.options.bar.mediaPlayer.lyrics.customSize`): SpinBox (100 to 750)
+    *   *Media: Lyrics style* (`Config.options.bar.mediaPlayer.lyrics.style`): Static, Scroller (SelectionArray)
+    *   *Media: Use gradient mask* (`Config.options.bar.mediaPlayer.lyrics.useGradientMask`): Switch
+*   **Section: Notifications & System Tray**
+    *   *Notifications: Show unread count* (`Config.options.bar.indicators.notifications.showUnreadCount`): Switch
+    *   *Tray: Make icons pinned by default* (`Config.options.tray.invertPinnedItems`): Switch
+    *   *Tray: Tint System Tray icons* (`Config.options.tray.monochromeIcons`): Switch
+*   **Section: Tooltips & Popups**
+    *   *Bluetooth devices layout* (`Config.options.bar.bluetoothDevicesLayout`): Classic, Expressive (SelectionArray)
+    *   *Click to show tooltips* (`Config.options.bar.tooltips.clickToShow`): Switch
+    *   *Compact popups* (`Config.options.bar.tooltips.compactPopups`): Switch
+    *   *Enable color picker popup* (`Config.options.bar.tooltips.enableColorPickerPopup`): Switch
+    *   *Enable Bluetooth connection popup* (`Config.options.bar.tooltips.enableBluetoothConnectionPopup`): Switch
+    *   *Enable keyboard layout transition popup* (`Config.options.bar.tooltips.enableKeyboardLayoutTransitionPopup`): Switch
+*   **Section: Indicators & Timers**
+    *   *Show stopwatch* (`Config.options.bar.timers.showStopwatch`): Switch
+    *   *Show pomodoro* (`Config.options.bar.timers.showPomodoro`): Switch
+    *   *Record - Minimal mode* (`Config.options.bar.indicators.record.minimal`): Switch
+*   **Section: Utility Buttons**
+    *   Toggles to show/hide status bar buttons: Screen Snip, Color Picker, Keyboard Toggle, Mic Toggle, Dark/Light Toggle, Performance Profile Toggle, Record, Wallpaper Selector.
+*   **Section: Keyboard Layout**
+    *   *Uppercase layout abbreviation* (`Config.options.bar.keyboardLayout.uppercaseLayout`): Switch
+*   **Section: Resources Tracker**
+    *   *Show percentage text* (`Config.options.bar.resources.showPercentageText`): Switch
+    *   *Always show RAM* (`Config.options.bar.resources.alwaysShowRam`): Switch
+    *   *Always show CPU* (`Config.options.bar.resources.alwaysShowCpu`): Switch
+    *   *Always show Temp* (`Config.options.bar.resources.alwaysShowCpuTemp`): Switch
+    *   *Always show Disk* (`Config.options.bar.resources.alwaysShowDisk`): Switch
+    *   *Always show Swap* (`Config.options.bar.resources.alwaysShowSwap`): Switch
+    *   *Always show Docker* (`Config.options.bar.resources.showDocker`): Switch
+*   **Section: Sports Tracker**
+    *   *Enable sports tracker* (`Config.options.bar.sports.enable`): Switch
+    *   *Leagues to monitor*: Switches for BRA, BUND, CL, CLA, EPL, LIGA, LIG1, SERA, UECL, UEL, WC, WWC.
 
 #### Page 4: Backgrounds (`BackgroundConfig.qml`)
 Controls desktop wallpaper movement and scaling behaviors.
@@ -231,6 +273,7 @@ Controls the application dock's behavior, positioning, and preview features.
 Configures the workspace switcher widget on the status bar.
 *   **Section: Display Options**
     *   *Use workspace map* (`Config.options.bar.workspaces.useWorkspaceMap`): Switch
+    *   *Sync overview map* (`Config.options.overview.useWorkspaceMap`): Switch
     *   *Always show numbers* (`Config.options.bar.workspaces.alwaysShowNumbers`): Switch
     *   *Show app icons* (`Config.options.bar.workspaces.showAppIcons`): Switch
     *   *Dynamic workspaces* (`Config.options.bar.workspaces.dynamicWorkspaces`): Switch
@@ -238,6 +281,8 @@ Configures the workspace switcher widget on the status bar.
     *   *Maximum window count per workspace* (`Config.options.bar.workspaces.maxWindowCount`): SpinBox
     *   *Number show delay when pressing Super* (`Config.options.bar.workspaces.showNumberDelay`): SpinBox
     *   *Number style* (`Config.options.bar.workspaces.numberMap`): Normal, Han chars, Roman (SelectionArray)
+*   **Section: Workspace Map Configuration**
+    *   *Starting workspace offset for each monitor* (`Config.options.bar.workspaces.workspaceMap`): Dynamic list of SpinBoxes per monitor (`HyprlandData.monitors`), displaying offsets as 1-indexed values in UI, mapped to 0-indexed integers in the config array.
 *   **Section: Shape Customization**
     *   *Apply shape mask to icons* (`Config.options.appearance.icons.enableShapeMask`): Switch
     *   *Icon mask shape* (`Config.options.appearance.icons.shapeMask`): SelectionArray (visible if icon shape mask active)
@@ -396,7 +441,7 @@ Controls window behavior, border layouts, transparency values, and gaps.
     *   Contains placeholder configurations for Hyprland monitors (Resolution, refresh rate, scale, rotation, and positioning).
 
 #### Page 16: Core Services (`CoreServicesConfig.qml`)
-Manages back-end system properties: audio limits, energy warnings, clocks, networks, LocalSend, and work safety policies.
+Manages back-end system properties: audio limits, energy warnings, clocks, networks, LocalSend, scheduling, and work safety policies.
 *   **Section: Audio Controls**
     *   *Earbang protection* (`Config.options.audio.protection.enable`): Switch
     *   *Max allowed volume increase* (`Config.options.audio.protection.maxAllowedIncrease`): SpinBox
@@ -408,6 +453,13 @@ Manages back-end system properties: audio limits, energy warnings, clocks, netwo
     *   *Automatic suspend* (`Config.options.battery.automaticSuspend`): Switch
     *   *Suspend at %* (`Config.options.battery.suspend`): SpinBox
     *   *Full battery warning* (`Config.options.battery.full`): SpinBox
+*   **Section: Scheduling (Dark Mode & Night Light)**
+    *   *Automatic Dark Mode* (`Config.options.light.darkMode.automatic`): Switch
+    *   *Dark Mode schedule*: Start (`Config.options.light.darkMode.from`), End (`Config.options.light.darkMode.to`) (Text/Time inputs)
+    *   *Automatic Night Light* (`Config.options.light.night.automatic`): Switch
+    *   *Night Light schedule*: Start (`Config.options.light.night.from`), End (`Config.options.light.night.to`) (Text/Time inputs)
+    *   *Night Light Color Temperature* (`Config.options.light.night.colorTemperature`): Slider (Kelvin scale, 1000 to 10000K, default 5000K)
+    *   *Anti-flashbang light filter* (`Config.options.light.antiFlashbang.enable`): Switch
 *   **Section: Time & Date Formats**
     *   *Second precision* (`Config.options.time.secondPrecision`): Switch
     *   *Start week on Monday* (`Config.options.time.firstDayOfWeek`): Switch
@@ -433,6 +485,11 @@ Manages back-end system properties: audio limits, energy warnings, clocks, netwo
     *   *Wallpaper Browser download path*: TextArea
     *   *Weather service*: Enable GPS, Fahrenheit unit (Switches), City name (TextArea), Polling interval (SpinBox)
     *   *Bluetooth Device Images*: Select device list, assign artwork upload, managed devices collection.
+*   **Section: Waffle Tweaks (Optional)**
+    *   *Fix switch handle position* (`Config.options.waffles.tweaks.switchHandlePositionFix`): Switch
+    *   *Smoother menu animations* (`Config.options.waffles.tweaks.smootherMenuAnimations`): Switch
+    *   *Smoother search bar* (`Config.options.waffles.tweaks.smootherSearchBar`): Switch
+    *   *Force 2-character day of week on calendar* (`Config.options.waffles.calendar.force2CharDayOfWeek`): Switch
 
 #### Page 17: About & Updates (`AboutConfig.qml`)
 Display information, updates check, git source switching, and changelog.

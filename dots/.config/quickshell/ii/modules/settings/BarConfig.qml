@@ -1251,6 +1251,21 @@ ContentPage {
     }
 
     ContentSection {
+        icon: "keyboard"
+        title: Translation.tr("Keyboard layout")
+
+        ConfigSwitch {
+            buttonIcon: "uppercase"
+            text: Translation.tr("Uppercase layout abbreviation")
+            checked: Config.options.bar.keyboardLayout.uppercaseLayout
+            onCheckedChanged: {
+                Config.options.bar.keyboardLayout.uppercaseLayout = checked;
+            }
+        }
+    }
+
+
+    ContentSection {
         icon: "tooltip"
         title: Translation.tr("Tooltips")
 

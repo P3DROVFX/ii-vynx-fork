@@ -82,6 +82,7 @@ Item {
             spacing: sidebarPadding
 
             SystemButtonRow {
+                id: headerRow
                 Layout.fillHeight: false
                 Layout.fillWidth: true
                 // Layout.margins: 10
@@ -105,11 +106,13 @@ Item {
             }
 
             LoaderedQuickPanelImplementation {
+                id: classicQuickPanelLoader
                 styleName: "classic"
                 sourceComponent: ClassicQuickPanel {}
             }
 
             LoaderedQuickPanelImplementation {
+                id: androidQuickPanelLoader
                 styleName: "android"
                 sourceComponent: AndroidQuickPanel {
                     editMode: root.editMode
@@ -117,12 +120,14 @@ Item {
             }
 
             CenterWidgetGroup {
+                id: centerGroup
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillHeight: true
                 Layout.fillWidth: true
             }
 
             BottomWidgetGroup {
+                id: bottomGroup
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillHeight: false
                 Layout.fillWidth: true
