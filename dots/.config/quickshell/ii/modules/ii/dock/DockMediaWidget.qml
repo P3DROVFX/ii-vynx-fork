@@ -24,7 +24,7 @@ Item {
     readonly property real fixedSlots: isVertical ? 2.5 : 3
     readonly property real fixedLength: fixedSlots * slotSize
 
-    readonly property real artSize: Math.round(buttonSize * 0.9)
+    readonly property real artSize: Math.round(buttonSize * 0.8)
     readonly property real artInner: artSize
 
     readonly property real controlSize: Math.round(buttonSize * 0.68)
@@ -45,16 +45,24 @@ Item {
 
     property bool mediaHovered: false
 
+    Rectangle {
+        id: bgRect
+        anchors.fill: parent
+        anchors.margins: root.dotMargin
+        color: Appearance.colors.colSurfaceContainerHighest
+        radius: Appearance.rounding.normal
+    }
+
     MouseArea {
         id: mediaMouseArea
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton | Qt.BackButton | Qt.ForwardButton
-        
+
         onEntered: root.mediaHovered = true
         onExited: root.mediaHovered = false
-        
-        onClicked: (mouse) => {
+
+        onClicked: mouse => {
             if (mouse.button === Qt.MiddleButton || mouse.button === Qt.LeftButton) {
                 root.currentPlayer?.togglePlaying();
             } else if (mouse.button === Qt.RightButton) {
@@ -109,7 +117,6 @@ Item {
         }
     }
 
-
     Loader {
         active: !root.isVertical
         anchors.fill: parent
@@ -119,13 +126,37 @@ Item {
             ArtworkItem {
                 id: artH
                 anchors.left: parent.left
-                anchors.leftMargin: 8
+                anchors.leftMargin: root.dotMargin + 6
                 anchors.verticalCenter: parent.verticalCenter
+            }
+
+            Rectangle {
+                id: playPauseBtn
+                anchors.right: parent.right
+                anchors.rightMargin: root.dotMargin + 6
+                anchors.verticalCenter: parent.verticalCenter
+                width: root.buttonSize * 0.65
+                height: root.buttonSize * 0.65
+                radius: root.isPlaying ? Appearance.rounding.small : width / 2
+                color: Appearance.colors.colPrimary
+                Behavior on radius { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+
+                HoverHandler {
+                    cursorShape: Qt.PointingHandCursor
+                }
+
+                MaterialSymbol {
+                    anchors.centerIn: parent
+                    text: root.isPlaying ? "pause" : "play_arrow"
+                    color: Appearance.m3colors.m3onPrimary
+                    fill: root.isPlaying ? 1.0 : 0.0
+                    iconSize: parent.height * 0.55
+                }
             }
 
             ColumnLayout {
                 anchors.left: artH.right
-                anchors.right: parent.right
+                anchors.right: playPauseBtn.left
                 anchors.leftMargin: root.dotMargin * 0.6
                 anchors.rightMargin: root.dotMargin * 0.6
                 anchors.verticalCenter: parent.verticalCenter
@@ -162,7 +193,7 @@ Item {
             }
         }
     }
-    
+
     Loader {
         active: root.isVertical
         anchors.fill: parent
@@ -172,7 +203,7 @@ Item {
             ArtworkItem {
                 id: artV
                 anchors.top: parent.top
-                anchors.topMargin: 8
+                anchors.topMargin: root.dotMargin + 6
                 anchors.horizontalCenter: parent.horizontalCenter
             }
         }

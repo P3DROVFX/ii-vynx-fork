@@ -672,6 +672,8 @@ Singleton {
                 property bool isolateMonitors: false
                 property bool monochromeIcons: false
                 property bool dimInactiveIcons: false
+                property bool enableShapeMask: false
+                property string shapeMask: "Circle"
                 property real height: 60
                 property real hoverRegionHeight: 2
                 property bool pinnedOnStartup: false

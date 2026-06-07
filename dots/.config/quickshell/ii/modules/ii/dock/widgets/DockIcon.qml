@@ -19,14 +19,8 @@ Item {
         id: iconMask
         width: Math.max(1, root.width)
         height: Math.max(1, root.height)
-        shapeString: Config.options.appearance.icons.shapeMask
+        shapeString: Config.options.dock.shapeMask
         visible: false
-    }
-
-    layer.enabled: Config.options.appearance.icons.enableShapeMask
-    layer.effect: MultiEffect {
-        maskEnabled: true
-        maskSource: iconMask
     }
 
     IconImage {
@@ -42,6 +36,12 @@ Item {
 
         // Force reload when icon theme regenerates (same pattern as DockFileButton)
         backer.sourceSize: Qt.size(parent.width + TaskbarApps.iconThemeRevision, parent.height + TaskbarApps.iconThemeRevision)
+
+        layer.enabled: Config.options.dock.enableShapeMask
+        layer.effect: MultiEffect {
+            maskEnabled: true
+            maskSource: iconMask
+        }
 
         Behavior on opacity {
             animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
@@ -70,7 +70,7 @@ Item {
             ColorOverlay {
                 anchors.fill: parent
                 source: monoDesat
-                color: ColorUtils.transparentize(Appearance.colors.colPrimary, 0.9)
+                color: ColorUtils.transparentize(Appearance.colors.colPrimary, 0.4)
             }
         }
     }

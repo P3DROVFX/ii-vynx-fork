@@ -213,6 +213,57 @@ ContentPage {
             }
         }
 
+        ContentSubsection {
+            title: Translation.tr("Dock Icon Shape Mask")
+            ConfigRow {
+                ConfigSwitch {
+                    Layout.fillWidth: true
+                    buttonIcon: "masks"
+                    text: Translation.tr("Apply shape mask to dock icons")
+                    checked: Config.options.dock.enableShapeMask
+                    onCheckedChanged: {
+                        Config.options.dock.enableShapeMask = checked;
+                    }
+                }
+
+                RippleButtonWithShape {
+                    enabled: Config.options.dock.enableShapeMask
+                    Layout.fillWidth: false
+                    shapeString: Config.options.dock.shapeMask
+                    implicitWidth: 60
+                    extraIcon: "edit"
+
+                    onClicked: {
+                        dockShapeMaskLoader.active = !dockShapeMaskLoader.active;
+                    }
+                }
+            }
+
+            Loader {
+                id: dockShapeMaskLoader
+                active: false
+                visible: active && Config.options.dock.enableShapeMask
+                Layout.fillWidth: true
+                sourceComponent: ContentSubsection {
+                    title: Translation.tr("Mask shape")
+
+                    ConfigSelectionArray {
+                        currentValue: Config.options.dock.shapeMask
+                        onSelected: newValue => {
+                            Config.options.dock.shapeMask = newValue;
+                        }
+                        options: (["Circle", "Square", "Slanted", "Arch", "Arrow", "SemiCircle", "Oval", "Pill", "Triangle", "Diamond", "ClamShell", "Pentagon", "Gem", "Sunny", "VerySunny", "Cookie4Sided", "Cookie6Sided", "Cookie7Sided", "Cookie9Sided", "Cookie12Sided", "Ghostish", "Clover4Leaf", "Clover8Leaf", "Burst", "SoftBurst", "Flower", "Puffy", "PuffyDiamond", "PixelCircle", "Bun", "Heart"]).map(icon => {
+                            return {
+                                displayName: "",
+                                shape: icon,
+                                value: icon
+                            };
+                        })
+                    }
+                }
+            }
+        }
+
         ConfigSpinBox {
             icon: "height"
             text: Translation.tr("Dock height")
