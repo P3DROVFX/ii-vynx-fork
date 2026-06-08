@@ -33,7 +33,7 @@ PopupWindow {
 
     property bool show: false
     readonly property bool shouldShow:
-        !dockRoot.dragActive &&
+        !dockRoot.dragging &&
         !dockRoot.anyContextMenuOpen &&
         (backgroundHover.hovered || dockRoot.buttonHovered || dockRoot.popupIsResizing) &&
         (appTopLevel?.toplevels?.length > 0)

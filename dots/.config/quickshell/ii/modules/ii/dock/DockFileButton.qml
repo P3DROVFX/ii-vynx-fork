@@ -11,6 +11,7 @@ import Quickshell
 import Quickshell.Widgets
 import Quickshell.Hyprland
 import Quickshell.Io
+import org.kde.kirigami as Kirigami
 import "./widgets"
 
 DockButton {
@@ -21,7 +22,7 @@ DockButton {
     property string filePath: ""
 
     property int buttonSize: Appearance.sizes.dockButtonSize
-    property int dotMargin: Math.round((Config.options?.dock.height ?? 60) * 0.2)
+    property int dotMargin: Math.round((Config.options?.dock.height ?? 60) * 0.2) - 2
 
     readonly property bool isVertical: dockContent?.isVertical ?? false
 
@@ -52,7 +53,6 @@ DockButton {
         stdout: SplitParser {
             onRead: (line) => {
                 const mime = line.trim()
-                // Convert MIME type (e.g. "text/plain") to XDG icon name ("text-plain")
                 if (mime !== "") root.cachedXdgIcon = mime.replace("/", "-")
             }
         }
@@ -71,7 +71,7 @@ DockButton {
     }
 
     readonly property string resolvedXdgIcon: {
-        TaskbarApps.iconThemeRevision   // reactive dependency — retriggers on theme change
+        TaskbarApps.iconThemeRevision
         const dirs = TaskbarApps.xdgUserDirs
 
         if (root.isDirectory) {
@@ -89,115 +89,105 @@ DockButton {
         }
 
         if (root.isImage) return ""
-
         if (root.cachedXdgIcon !== "")
             return Quickshell.iconPath(root.cachedXdgIcon, "text-x-generic")
-
         return Quickshell.iconPath("text-x-generic", "application-x-generic")
-    }
-
-    readonly property bool isDragging: dockContent?.fileDragActive === true
-                                    && dockContent?.fileDraggedIndex === delegateIndex
-
-    // Computes how much this delegate should shift to make room for the dragged item
-    readonly property real shiftOffset: {
-        if (!dockContent?.fileDragActive || dockContent.fileDraggedIndex < 0 || delegateIndex === dockContent.fileDraggedIndex) return 0
-
-        const dragIdx = dockContent.fileDraggedIndex
-        const dropIdx = dockContent.fileDropIndex
-        const step = buttonSize + dotMargin * 2
-
-        if (dockContent.fileDragIntent === "unpin")
-            return delegateIndex > dragIdx ? -step : 0
-
-        if (dockContent.fileDragIntent === "reorder") {
-            if (dragIdx < dropIdx && delegateIndex > dragIdx && delegateIndex <= dropIdx) return -step
-            if (dragIdx > dropIdx && delegateIndex >= dropIdx && delegateIndex < dragIdx) return step
-        }
-
-        return 0
     }
 
     width: buttonSize + dotMargin * 2
     height: buttonSize + dotMargin * 2
+    opacity: 1.0
+    z: 0
+    scale: _pressed ? 0.88 : 1.0
 
-    opacity: isDragging ? 0.0 : 1.0
-    Behavior on opacity {
-        enabled: !isDragging && !(dockContent?.fileSuppressAnim ?? false)
-        animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(root)
+    Behavior on scale {
+        animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
     }
 
-    z: isDragging ? 100 : 0
+    property bool _pressed: false
+    property bool fileHovered: false
 
-    transform: Translate {
-        x: root.isVertical ? 0 : root.shiftOffset
-        y: root.isVertical ? root.shiftOffset : 0
-        Behavior on x {
-            enabled: !root.isDragging && !(dockContent?.fileSuppressAnim ?? false)
-            animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
-        }
-        Behavior on y {
-            enabled: !root.isDragging && !(dockContent?.fileSuppressAnim ?? false)
-            animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
-        }
-    }
-
-    pointingHandCursor: false
-
+    // Hover tracking for tooltip (separate from drag overlay, matches DockAppButton pattern)
     MouseArea {
-        id: fileMouseArea
-        anchors.centerIn: parent
-        width: root.buttonSize
-        height: root.buttonSize
+        id: hoverArea
+        anchors.fill: parent
         hoverEnabled: true
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
-        preventStealing: drag.active
+        acceptedButtons: Qt.NoButton
         cursorShape: Qt.PointingHandCursor
-
-        drag.target: dockContent?.fileDragGhostItem ?? null
-        drag.axis: root.isVertical ? Drag.YAxis : Drag.XAxis
-        drag.threshold: 0
-
-        readonly property real ghostHalf: (dockContent?.fileDragGhostItem?.width ?? 0) / 2
-        drag.minimumX: root.isVertical ? 0 : (dockContent?.pinButtonCenter ?? 0) - ghostHalf
-        drag.maximumX: root.isVertical ? 0 : (dockContent?.unpinButtonCenter ?? 0) - ghostHalf
-        drag.minimumY: root.isVertical ? (dockContent?.pinButtonCenter ?? 0) - ghostHalf : 0
-        drag.maximumY: root.isVertical ? (dockContent?.unpinButtonCenter ?? 0) - ghostHalf : 0
-
-        property bool wasDragging: false
-
-        onPressed: {
-            wasDragging = false
-            if (dockContent?.fileDragGhostItem) {
-                const p = root.mapToItem(dockContent, 0, 0)
-                dockContent.fileDragGhostItem.x = p.x + root.dotMargin
-                dockContent.fileDragGhostItem.y = p.y + root.dotMargin
-            }
+        onEntered: {
+            root.fileHovered = true
+            if (dockContent?.suppressHover) return
+            dockContent.lastHoveredButton = root
+            dockContent.buttonHovered = true
         }
-
-        onPositionChanged: {
-            if (!drag.active) return
-            if (!wasDragging) {
-                wasDragging = true
-                dockContent.startFileDrag(root.delegateIndex)
-            }
-            dockContent.moveFileDrag()
-        }
-
-        onReleased: (mouse) => {
-            if (wasDragging) {
-                wasDragging = false
-                dockContent.endFileDrag()
-                return
-            }
-            if (mouse.button === Qt.RightButton) {
+        onExited: {
+            root.fileHovered = false
+            if (dockContent?.lastHoveredButton === root)
                 dockContent.buttonHovered = false
-                dockContent.lastHoveredButton = null
-                fileContextMenu.open()
-                return
-            }
+        }
+    }
 
-            Quickshell.execDetached({ command: ["xdg-open", root.filePath] })
+    // Drag overlay (dots-hyprland pattern)
+    Loader {
+        anchors.fill: parent
+        z: 10
+        active: true
+        sourceComponent: MouseArea {
+            id: dragOverlay
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            preventStealing: true
+            cursorShape: Qt.PointingHandCursor
+            property real pressCoord: 0
+            property bool dragActive: false
+
+            onPressed: (event) => {
+                root._pressed = true
+                if (event.button === Qt.LeftButton) {
+                    pressCoord = root.isVertical ? event.y : event.x
+                }
+            }
+            onPositionChanged: (event) => {
+                if (!pressed || event.button !== Qt.LeftButton) return
+                var cur = root.isVertical ? event.y : event.x
+                var dist = Math.abs(cur - pressCoord)
+                if (!dragActive && dist > 5) {
+                    dragActive = true
+                    root._pressed = false
+                    if (dockContent) {
+                        dockContent.buttonHovered = false
+                        dockContent.lastHoveredButton = null
+                        dockContent.startItemDrag(root.delegateIndex, dragOverlay, event.x, event.y)
+                    }
+                }
+                if (dragActive) {
+                    if (dockContent) dockContent.moveItemDrag(dragOverlay, event.x, event.y)
+                }
+            }
+            onReleased: (event) => {
+                root._pressed = false
+                if (dragActive) {
+                    dragActive = false
+                    if (dockContent) dockContent.endItemDrag()
+                    return
+                }
+                if (event.button === Qt.RightButton) {
+                    if (dockContent) {
+                        dockContent.buttonHovered = false
+                        dockContent.lastHoveredButton = null
+                    }
+                    fileContextMenu.open()
+                    return
+                }
+                Quickshell.execDetached({ command: ["xdg-open", root.filePath] })
+            }
+            onCanceled: {
+                root._pressed = false
+                if (dragActive) {
+                    dragActive = false
+                    if (dockContent) dockContent.cancelDrag()
+                }
+            }
         }
     }
 
@@ -210,15 +200,25 @@ DockButton {
     Connections {
         target: fileContextMenu
         function onActiveChanged() {
-            if (dockContent) dockContent.anyContextMenuOpen = fileContextMenu.active
+            if (!dockContent) return
+            if (fileContextMenu.active)
+                dockContent.registerContextMenuOpen()
+            else
+                dockContent.registerContextMenuClose()
         }
+    }
+
+    // Safety: if this button is destroyed while menu is open, clean up the counter
+    Component.onDestruction: {
+        if (dockContent && fileContextMenu.active)
+            dockContent.registerContextMenuClose()
     }
 
     DockTooltip {
         id: fileTooltip
         parentItem: root
         text: root.fileName
-        showTooltip: fileMouseArea.containsMouse && !(dockContent?.fileDragActive ?? false)
+        showTooltip: root.fileHovered
         tooltipOffset: -root.dotMargin
     }
 
@@ -245,7 +245,6 @@ DockButton {
                 maskSource: iconMask
             }
 
-            // Image thumbnail (shown for recognized image files)
             Image {
                 id: thumbnailImage
                 anchors.fill: parent
@@ -266,7 +265,6 @@ DockButton {
                 }
             }
 
-            // Placeholder shown while the image thumbnail is loading
             MaterialSymbol {
                 anchors.centerIn: parent
                 visible: root.isImage && thumbnailImage.status !== Image.Ready
@@ -275,26 +273,14 @@ DockButton {
                 color: Appearance.colors.colOnLayer0
             }
 
-            // XDG icon for non-image files
-            IconImage {
-                id: xdgIcon
+            Kirigami.Icon {
                 anchors.centerIn: parent
                 visible: !root.isImage && root.resolvedXdgIcon !== ""
-
-                implicitSize: root.buttonSize
                 width: root.buttonSize
                 height: root.buttonSize
-
                 source: root.resolvedXdgIcon
-
-                // Force icon reload when the theme changes
-                backer.sourceSize: Qt.size(
-                    root.buttonSize + TaskbarApps.iconThemeRevision,
-                    root.buttonSize + TaskbarApps.iconThemeRevision
-                )
             }
 
-            // Fallback folder icon for directories with no specific XDG icon
             MaterialSymbol {
                 anchors.centerIn: parent
                 visible: !root.isImage && root.resolvedXdgIcon === "" && root.isDirectory

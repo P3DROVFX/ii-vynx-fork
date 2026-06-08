@@ -11,21 +11,27 @@ Item {
     id: root
     width: Appearance.sizes.dockButtonSize
     height: Appearance.sizes.dockButtonSize
+    visible: false
 
     property string draggedAppId: ""
+    property string fixedItemKey: ""
     property bool willUnpin: false
-
     property bool isFile: false
     property bool fileIsImage: false
     property string filePath: ""
     property string fileResolvedIcon: ""
 
-    readonly property string renderType: isFile ? (fileIsImage ? "image" : "file") : "app"
+    readonly property string renderType: {
+        if (fixedItemKey !== "") return "fixed"
+        if (isFile) return fileIsImage ? "image" : "file"
+        return "app"
+    }
 
     Loader {
         anchors.fill: parent
         sourceComponent: {
             switch (renderType) {
+                case "fixed": return fixedComponent
                 case "app": return appComponent
                 case "image": return imageComponent
                 case "file": return fileComponent
@@ -37,7 +43,6 @@ Item {
         id: appComponent
         Item {
             anchors.fill: parent
-
             DockIcon {
                 anchors.centerIn: parent
                 implicitWidth: Appearance.sizes.dockButtonSize
@@ -47,7 +52,38 @@ Item {
             }
         }
     }
-    
+
+    Component {
+        id: fixedComponent
+        Item {
+            anchors.fill: parent
+            Rectangle {
+                anchors.centerIn: parent
+                width: Appearance.sizes.dockButtonSize
+                height: Appearance.sizes.dockButtonSize
+                radius: Appearance.rounding.normal
+                color: Appearance.colors.colPrimaryContainer
+                opacity: 0.7
+
+                MaterialSymbol {
+                    anchors.centerIn: parent
+                    iconSize: Appearance.sizes.dockButtonSize * 0.5
+                    color: Appearance.colors.colOnPrimaryContainer
+                    text: {
+                        switch (root.fixedItemKey) {
+                            case "pin": return "keep"
+                            case "trash": return "delete"
+                            case "overview": return "apps"
+                            case "media": return "music_note"
+                            case "weather": return "cloud"
+                            default: return "drag_indicator"
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     Component {
         id: imageComponent
         Image {
@@ -67,16 +103,16 @@ Item {
                 }
             }
 
-            MaterialSymbol { // fallback symbol
+            MaterialSymbol {
                 anchors.centerIn: parent
                 visible: ghostThumbnail.status !== Image.Ready
                 text: "image"
                 iconSize: Appearance.sizes.dockButtonSize / 2
                 color: Appearance.colors.colOnLayer0
-            } 
+            }
         }
     }
-    
+
     Component {
         id: fileComponent
         IconImage {

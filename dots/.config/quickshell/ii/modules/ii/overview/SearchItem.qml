@@ -115,6 +115,15 @@ RippleButton {
             }
         });
         if (root.entry?.type === Translation.tr("App")) {
+            const isPinned = TaskbarApps.isPinned(root.entry.id);
+            items.push({
+                name: isPinned ? Translation.tr("Unpin from Dock") : Translation.tr("Pin to Dock"),
+                icon: isPinned ? "keep_off" : "keep",
+                execute: () => {
+                    TaskbarApps.togglePin(root.entry.id);
+                    root.actionPanelOpen = false;
+                }
+            });
             items.push({
                 name: Translation.tr("Copy ID"),
                 icon: "content_copy",
@@ -131,6 +140,27 @@ RippleButton {
                     root.actionPanelOpen = false;
                 }
             });
+        }
+        if (root.contentType === "filepath" || root.itemType === Translation.tr("Directory") || root.itemType === Translation.tr("Folder Alias")) {
+            const isDir = root.itemType === Translation.tr("Directory") || root.itemType === Translation.tr("Folder Alias") || FileUtils.isDirectory(root.itemName);
+            if (isDir) {
+                const pinnedFiles = Config.options?.dock?.pinnedFiles ?? [];
+                const cleanPath = root.itemName.toString().replace(/^file:\/\//, "");
+                const isPinned = pinnedFiles.includes(cleanPath);
+                
+                items.push({
+                    name: isPinned ? Translation.tr("Unpin folder from Dock") : Translation.tr("Pin folder to Dock"),
+                    icon: isPinned ? "folder_off" : "create_new_folder",
+                    execute: () => {
+                        if (isPinned) {
+                            TaskbarApps.removePinnedFile(root.itemName);
+                        } else {
+                            TaskbarApps.addPinnedFile(root.itemName);
+                        }
+                        root.actionPanelOpen = false;
+                    }
+                });
+            }
         }
         const ea = root.entry?.actions ?? [];
         for (const action of ea) {

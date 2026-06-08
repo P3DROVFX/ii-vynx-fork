@@ -76,12 +76,35 @@ Singleton {
         const current = Config.options?.dock?.pinnedFiles ?? []
         if (current.includes(cleanPath)) return
         Config.options.dock.pinnedFiles = current.concat([cleanPath])
+
+        // Also add to the order so it appears in the dock
+        const fileKey = "file:" + cleanPath
+        const order = Array.from(Config.options?.dock?.order ?? [])
+        if (!order.includes(fileKey)) {
+            // Insert before "trash" if it exists, otherwise append
+            const trashIdx = order.indexOf("trash")
+            if (trashIdx !== -1) {
+                order.splice(trashIdx, 0, fileKey)
+            } else {
+                order.push(fileKey)
+            }
+            Config.options.dock.order = order
+        }
     }
 
     function removePinnedFile(path) {
         const cleanPath = path.toString().replace(/^file:\/\//, "")
         const current = Config.options?.dock?.pinnedFiles ?? []
         Config.options.dock.pinnedFiles = current.filter(p => p !== cleanPath)
+
+        // Also remove from the order
+        const fileKey = "file:" + cleanPath
+        const order = Array.from(Config.options?.dock?.order ?? [])
+        const fileIdx = order.indexOf(fileKey)
+        if (fileIdx !== -1) {
+            order.splice(fileIdx, 1)
+            Config.options.dock.order = order
+        }
     }
 
     function reorderPinnedFile(fromPath, toPath) {
@@ -92,6 +115,22 @@ Singleton {
         if (fromIdx === -1 || toIdx === -1) return
         files.splice(toIdx, 0, files.splice(fromIdx, 1)[0])
         Config.options.dock.pinnedFiles = files
+    }
+
+    function reorderPinned(fromIndex, toIndex) {
+        if (fromIndex === toIndex) return
+        var pinned = Array.from(Config.options.dock.pinnedApps)
+        if (fromIndex < 0 || fromIndex >= pinned.length || toIndex < 0 || toIndex >= pinned.length) return
+        pinned.splice(toIndex, 0, pinned.splice(fromIndex, 1)[0])
+        Config.options.dock.pinnedApps = pinned
+    }
+
+    function reorderOrder(fromIndex, toIndex) {
+        if (fromIndex === toIndex) return
+        var order = Array.from(Config.options.dock.order)
+        if (fromIndex < 0 || fromIndex >= order.length || toIndex < 0 || toIndex >= order.length) return
+        order.splice(toIndex, 0, order.splice(fromIndex, 1)[0])
+        Config.options.dock.order = order
     }
 
     // ── Icon theme refresh ────────────────────────────────────────────────

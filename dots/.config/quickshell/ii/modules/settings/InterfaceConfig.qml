@@ -213,13 +213,67 @@ ContentPage {
             }
         }
 
+        ConfigSwitch {
+            buttonIcon: "cloud"
+            text: Translation.tr("Enable weather widget")
+            checked: Config.options.dock.enableWeatherWidget
+            onCheckedChanged: {
+                Config.options.dock.enableWeatherWidget = checked;
+            }
+        }
+
+        ConfigSwitch {
+            buttonIcon: "notifications"
+            text: Translation.tr("Show notification badges")
+            checked: Config.options.dock.showNotificationBadges
+            onCheckedChanged: {
+                Config.options.dock.showNotificationBadges = checked;
+            }
+        }
+
+        ConfigRow {
+            uniform: true
+            ConfigSwitch {
+                buttonIcon: "reorder"
+                text: Translation.tr("Show dividers")
+                checked: Config.options.dock.showDividers
+                onCheckedChanged: {
+                    Config.options.dock.showDividers = checked;
+                }
+            }
+            ConfigSwitch {
+                buttonIcon: "apps"
+                text: Translation.tr("Show overview button")
+                checked: Config.options.dock.showOverviewButton
+                onCheckedChanged: {
+                    Config.options.dock.showOverviewButton = checked;
+                }
+            }
+            ConfigSwitch {
+                buttonIcon: "keep"
+                text: Translation.tr("Show pin button")
+                checked: Config.options.dock.showPinButton
+                onCheckedChanged: {
+                    Config.options.dock.showPinButton = checked;
+                }
+            }
+            ConfigSwitch {
+                buttonIcon: "delete"
+                text: Translation.tr("Show trash button")
+                checked: Config.options.dock.showTrashButton
+                onCheckedChanged: {
+                    Config.options.dock.showTrashButton = checked;
+                }
+            }
+        }
+
         ContentSubsection {
             title: Translation.tr("Dock Icon Shape Mask")
             ConfigRow {
                 ConfigSwitch {
                     Layout.fillWidth: true
                     buttonIcon: "masks"
-                    text: Translation.tr("Apply shape mask to dock icons")
+                    text: Translation.tr("Adaptive icons")
                     checked: Config.options.dock.enableShapeMask
                     onCheckedChanged: {
                         Config.options.dock.enableShapeMask = checked;

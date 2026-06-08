@@ -5,20 +5,19 @@ import "../"
 
 Item {
     property bool show: true
-    visible: show || opacity > 0
-    opacity: show ? 1.0 : 0.0
+    readonly property bool processedShow: show && (Config.options?.dock?.showDividers ?? true)
+    visible: processedShow || opacity > 0
+    opacity: processedShow ? 1.0 : 0.0
     Layout.alignment: Qt.AlignCenter
-    Layout.preferredWidth: root.isVertical ? root.buttonSlotSize : (show ? root.sepThickness : 0)
-    Layout.preferredHeight: root.isVertical ? (show ? root.sepThickness : 0) : root.buttonSlotSize
+    Layout.preferredWidth: processedShow ? (root.isVertical ? root.buttonSlotSize : root.sepThickness) : 0
+    Layout.preferredHeight: processedShow ? (root.isVertical ? root.sepThickness : root.buttonSlotSize) : 0
     Behavior on opacity {
         animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
     }
     Behavior on Layout.preferredWidth {
-        enabled: !root.isVertical
         animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
     }
     Behavior on Layout.preferredHeight {
-        enabled: root.isVertical
         animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
     }
     DockSeparator {

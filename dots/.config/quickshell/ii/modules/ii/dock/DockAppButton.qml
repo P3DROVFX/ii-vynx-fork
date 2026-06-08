@@ -16,14 +16,13 @@ DockButton {
     property int lastFocused: -1
 
     readonly property real dockHeight: Config.options?.dock.height ?? 60
-    property int dotMargin: Math.round(dockHeight * 0.2)
+    property int dotMargin: Math.round(dockHeight * 0.2) - 2
 
     readonly property var desktopEntry: appToplevel ? TaskbarApps.getCachedDesktopEntry(appToplevel.appId) : null
     property bool isVertical: dockContent?.isVertical ?? false
 
-
     readonly property bool appIsActive: focusedWindowIndex >= 0
-    readonly property int focusedWindowIndex: { // this is computed every frame, we have to somehow cache this
+    readonly property int focusedWindowIndex: {
         if (!appToplevel || !appToplevel.toplevels) return -1
         for (let i = 0; i < appToplevel.toplevels.length; i++) {
             if (appToplevel.toplevels[i].activated) return i
@@ -31,162 +30,122 @@ DockButton {
         return -1
     }
 
-    readonly property bool isDragging: dockContent?.draggedAppId === appToplevel?.appId
-    readonly property string dockPos: dock.dockEffectivePosition
     readonly property bool appIsRunning: appToplevel && appToplevel.toplevels && appToplevel.toplevels.length > 0
 
-    pointingHandCursor: false
+    property bool _pressed: false
 
     width: buttonSize + dotMargin * 2
     height: buttonSize + dotMargin * 2
 
-    opacity: isDragging ? 0.0 : 1.0
+    opacity: 1.0
+    z: 0
+    scale: _pressed ? 0.88 : 1.0
 
-    Behavior on opacity {
-        enabled: !isDragging && !(dockContent?.suppressAnimation ?? false)
+    Behavior on scale {
         animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
     }
 
-    z: isDragging ? 100 : 0
-
-    // Computes how much this delegate should shift to make room for the dragged item
-    readonly property real shiftOffset: {
-        if (!dockContent || !dockContent.dragActive) return 0
-        if (delegateIndex === dockContent.draggedIndex) return 0
-
-        const step = buttonSize + dotMargin * 2
-        const isThisPinned = TaskbarApps.isPinned(appToplevel?.appId ?? "")
-        const isDraggedPinned = TaskbarApps.isPinned(dockContent.draggedAppId)
-        const intent = dockContent.dragIntent
-
-        // Case 1: reordering among pinned apps
-        if (isThisPinned && isDraggedPinned) {
-            const d = dockContent.draggedIndex
-
-            if (intent === "unpin") {
-                if (delegateIndex > d) return step
-                return 0
-            }
-
-            if (intent === "reorder") {
-                const t = dockContent.dropTargetIndex
-                if (t > d && delegateIndex > d && delegateIndex <= t) return step
-                if (t < d && delegateIndex >= t && delegateIndex < d) return -step
-            }
-            return 0
-        }
-
-        // Case 2: pinning a running app — shift running delegates out of the way
-        if (!isDraggedPinned && !isThisPinned && intent === "pin") {
-            if (delegateIndex > dockContent.draggedIndex) return -step
-        }
-
-        return 0
-    }
-
-    transform: Translate {
-        x: root.isVertical ? 0 : root.shiftOffset
-        y: root.isVertical ? root.shiftOffset : 0
-
-        Behavior on x {
-            enabled: !root.isDragging && !(dockContent?.suppressAnimation ?? false)
-            animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
-        }
-        Behavior on y {
-            enabled: !root.isDragging && !(dockContent?.suppressAnimation ?? false)
-            animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
-        }
-    }
-
-    MouseArea {
-        id: mainMouseArea
-        width: root.buttonSize
-        height: root.buttonSize
-        anchors.centerIn: parent
-        cursorShape: Qt.PointingHandCursor
-
-        hoverEnabled: true
-        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-        preventStealing: drag.active
-
-        drag.target: appToplevel ? dockContent.dragGhostItem : null
-        drag.axis: root.isVertical ? Drag.YAxis : Drag.XAxis
-        drag.threshold: 4
-
-        readonly property real ghostHalf: (dockContent?.dragGhostItem?.width ?? 0) / 2
-
-        drag.minimumX: root.isVertical ? 0 : (dockContent?.pinButtonCenter ?? 0) - ghostHalf
-        drag.maximumX: root.isVertical ? 0 : (dockContent?.unpinButtonCenter ?? 0) - ghostHalf
-        drag.minimumY: root.isVertical ? (dockContent?.pinButtonCenter ?? 0) - ghostHalf : 0
-        drag.maximumY: root.isVertical ? (dockContent?.unpinButtonCenter ?? 0) - ghostHalf : 0
-
-        property bool wasDragging: false
-
-        onEntered: {
-            if (dockContent?.suppressHover) return
-            if (appToplevel?.toplevels?.length > 0) {
+    // Hover-only MouseArea for running apps (shows preview popup)
+    Loader {
+        anchors.fill: parent
+        active: appIsRunning
+        sourceComponent: MouseArea {
+            id: hoverArea
+            anchors.fill: parent
+            hoverEnabled: true
+            acceptedButtons: Qt.NoButton
+            cursorShape: Qt.PointingHandCursor
+            onEntered: {
+                if (dockContent?.suppressHover) return
                 dockContent.lastHoveredButton = root
                 dockContent.buttonHovered = true
-            } else {
-                dockContent.buttonHovered = false
-                dockContent.popupIsResizing = false
-            }
-            if (appToplevel && appToplevel.toplevels)
                 lastFocused = appToplevel.toplevels.length - 1
-        }
-
-        onExited: {
-            if (dockContent?.lastHoveredButton === root)
-                dockContent.buttonHovered = false
-        }
-
-        onPressed: (mouse) => {
-            wasDragging = false
-            if (dockContent?.dragGhostItem && appToplevel) {
-                const p = root.mapToItem(dockContent, 0, 0)
-                dockContent.dragGhostItem.x = p.x + root.dotMargin
-                dockContent.dragGhostItem.y = p.y + root.dotMargin
+            }
+            onExited: {
+                if (dockContent?.lastHoveredButton === root)
+                    dockContent.buttonHovered = false
             }
         }
+    }
 
-        onPositionChanged: (mouse) => {
-            if (!drag.active || !appToplevel) return
-            if (!wasDragging) {
-                wasDragging = true
-                dockContent.startDrag(root.appToplevel.appId, root.delegateIndex)
-            }
-            dockContent.moveDrag()
-        }
+    // Drag overlay (dots-hyprland pattern)
+    Loader {
+        anchors.fill: parent
+        z: 10
+        active: true
+        sourceComponent: MouseArea {
+            id: dragOverlay
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+            preventStealing: true
+            cursorShape: Qt.PointingHandCursor
+            property real pressCoord: 0
+            property bool dragActive: false
 
-        onReleased: (mouse) => {
-            if (wasDragging) {
-                wasDragging = false
-                dockContent.endDrag()
-                return
+            onPressed: (event) => {
+                root._pressed = true
+                if (event.button === Qt.LeftButton) {
+                    pressCoord = root.isVertical ? event.y : event.x
+                }
             }
-            if (mouse.button === Qt.RightButton) {
-                dockContent.buttonHovered = false
-                dockContent.lastHoveredButton = null
-                dockContextMenu.open()
-                return
+            onPositionChanged: (event) => {
+                if (!pressed) return
+                var cur = root.isVertical ? event.y : event.x
+                var dist = Math.abs(cur - pressCoord)
+                // Only allow drag when delegateIndex >= 0 (reorderable items)
+                if (!dragActive && dist > 5 && root.delegateIndex >= 0) {
+                    dragActive = true
+                    root._pressed = false
+                    if (dockContent) {
+                        dockContent.buttonHovered = false
+                        dockContent.startItemDrag(root.delegateIndex, dragOverlay, event.x, event.y)
+                    }
+                }
+                if (dragActive) {
+                    if (dockContent) dockContent.moveItemDrag(dragOverlay, event.x, event.y)
+                }
             }
-            if (mouse.button === Qt.MiddleButton) {
-                root.desktopEntry?.execute()
-                return
+            onReleased: (event) => {
+                root._pressed = false
+                if (dragActive) {
+                    dragActive = false
+                    if (dockContent) dockContent.endItemDrag()
+                    return
+                }
+                if (event.button === Qt.RightButton) {
+                    if (dockContent) {
+                        dockContent.buttonHovered = false
+                        dockContent.lastHoveredButton = null
+                    }
+                    dockContextMenu.open()
+                    return
+                }
+                if (event.button === Qt.MiddleButton) {
+                    root.desktopEntry?.execute()
+                    return
+                }
+                if (!appToplevel || appToplevel.toplevels.length === 0) {
+                    root.desktopEntry?.execute()
+                    return
+                }
+                lastFocused = (lastFocused + 1) % appToplevel.toplevels.length
+                appToplevel.toplevels[lastFocused].activate()
             }
-            if (!appToplevel || appToplevel.toplevels.length === 0) {
-                root.desktopEntry?.execute()
-                return
+            onCanceled: {
+                root._pressed = false
+                if (dragActive) {
+                    dragActive = false
+                    if (dockContent) dockContent.cancelDrag()
+                }
             }
-            // Cycle through open windows on left click
-            lastFocused = (lastFocused + 1) % appToplevel.toplevels.length
-            appToplevel.toplevels[lastFocused].activate()
         }
     }
 
     altAction: () => {
-        dockContent.buttonHovered = false
-        dockContent.lastHoveredButton = null
+        if (dockContent) {
+            dockContent.buttonHovered = false
+            dockContent.lastHoveredButton = null
+        }
         dockContextMenu.open()
     }
 
@@ -200,9 +159,18 @@ DockButton {
     Connections {
         target: dockContextMenu
         function onActiveChanged() {
-            if (dockContent)
-                dockContent.anyContextMenuOpen = dockContextMenu.active
+            if (!dockContent) return
+            if (dockContextMenu.active)
+                dockContent.registerContextMenuOpen()
+            else
+                dockContent.registerContextMenuClose()
         }
+    }
+
+    // Safety: if this button is destroyed while menu is open, clean up the counter
+    Component.onDestruction: {
+        if (dockContent && dockContextMenu.active)
+            dockContent.registerContextMenuClose()
     }
 
     DockAppIcon {}

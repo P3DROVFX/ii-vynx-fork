@@ -17,6 +17,8 @@ Item {
     id: root
 
     property bool isVertical: false
+    property var dockContent: null
+    property int delegateIndex: -1
 
     readonly property real buttonSize: Appearance.sizes.dockButtonSize
     readonly property real dotMargin: (Config.options?.dock.height ?? 60) * 0.2
@@ -24,24 +26,33 @@ Item {
     readonly property real fixedSlots: isVertical ? 2.5 : 3
     readonly property real fixedLength: fixedSlots * slotSize
 
-    readonly property real artSize: Math.round(buttonSize * 0.8)
-    readonly property real artInner: artSize
-
     readonly property real controlSize: Math.round(buttonSize * 0.68)
 
     readonly property int textSizeL: Math.round(buttonSize * (isVertical ? 0.24 : 0.26))
     readonly property int textSizeS: Math.round(buttonSize * (isVertical ? 0.20 : 0.22))
     readonly property int marqueeRunningThreshold: isVertical ? 10 : 14
 
-    implicitWidth: isVertical ? slotSize : fixedLength
-    implicitHeight: isVertical ? buttonSize + dotMargin * 1.3 : slotSize
+    implicitWidth: root.isVertical ? root.slotSize : root.fixedLength
+    implicitHeight: root.isVertical ? root.slotSize : root.slotSize
 
     readonly property MprisPlayer currentPlayer: MprisController.activePlayer
     readonly property bool isPlaying: currentPlayer?.isPlaying ?? false
 
     readonly property string finalTitle: StringUtils.cleanMusicTitle(currentPlayer?.trackTitle) || Translation.tr("Unknown Title")
     readonly property string finalArtist: currentPlayer?.trackArtist || Translation.tr("Unknown Artist")
-    readonly property string finalArtUrl: MprisController.artUrl
+    readonly property string finalArtUrl: MprisController.artUrl || ""
+
+    readonly property string localFilePath: {
+        if (!finalArtUrl) return "";
+        if (finalArtUrl.startsWith("file://")) return finalArtUrl.replace("file://", "");
+        return `${Directories.coverArt}/${Qt.md5(finalArtUrl)}`;
+    }
+
+    Process {
+        id: coverDownloader
+        running: root.finalArtUrl.length > 0 && !root.finalArtUrl.startsWith("file://")
+        command: ["bash", "-c", `[ -f '${root.localFilePath}' ] || curl -4 -sSL '${root.finalArtUrl}' -o '${root.localFilePath}'`]
+    }
 
     property bool mediaHovered: false
 
@@ -51,160 +62,190 @@ Item {
         anchors.margins: root.dotMargin
         color: Appearance.colors.colSurfaceContainerHighest
         radius: Appearance.rounding.normal
+        clip: true
+
+        layer.enabled: true
+        layer.effect: OpacityMask {
+            maskSource: Rectangle {
+                width: bgRect.width
+                height: bgRect.height
+                radius: bgRect.radius
+            }
+        }
+
+        StyledImage {
+            id: blurredBg
+            anchors.fill: parent
+            source: root.localFilePath.length > 0 ? `file://${root.localFilePath}` : ""
+            fillMode: Image.PreserveAspectCrop
+            cache: false
+            asynchronous: true
+            opacity: 0.8
+            visible: root.localFilePath.length > 0
+
+            layer.enabled: true
+            layer.effect: StyledBlurEffect {
+                source: blurredBg
+                blurMax: 32
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                color: ColorUtils.transparentize(Appearance.colors.colLayer0, 0.6)
+            }
+        }
+
+        Loader {
+            active: !root.isVertical
+            anchors.fill: parent
+            sourceComponent: Item {
+                anchors.fill: parent
+
+                RowLayout {
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: root.dotMargin + 6
+                    anchors.rightMargin: root.dotMargin + 6
+                    spacing: 12
+
+                    Item {
+                        implicitWidth: root.buttonSize * 0.65
+                        implicitHeight: root.buttonSize * 0.65
+                        Layout.alignment: Qt.AlignVCenter
+                        
+                        RippleButton {
+                            id: playButton
+                            anchors.centerIn: parent
+                            implicitWidth: parent.implicitWidth
+                            implicitHeight: parent.implicitHeight
+                            z: 100 // High z-index
+                            buttonRadius: root.isPlaying ? Appearance.rounding.small : implicitWidth / 2
+                            colBackground: Appearance.colors.colPrimary
+                            colRipple: Appearance.colors.colPrimaryActive
+                            pointingHandCursor: true
+                            onClicked: MprisController.togglePlaying()
+                            contentItem: MaterialSymbol {
+                                text: root.isPlaying ? "pause" : "play_arrow"
+                                color: Appearance.colors.colOnPrimary
+                                fill: 1
+                                iconSize: parent.height * 0.55
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+                            
+                            Behavior on buttonRadius { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+                        spacing: 2
+
+                        MarqueeText {
+                            Layout.fillWidth: true
+                            text: root.finalTitle
+                            fontSize: root.textSizeL
+                            fontWeight: Font.DemiBold
+                            textColor: root.localFilePath.length > 0 ? "white" : Appearance.colors.colOnLayer0
+                            running: root.mediaHovered && text.length > root.marqueeRunningThreshold
+                        }
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: root.finalArtist
+                            font.pixelSize: root.textSizeS
+                            color: root.localFilePath.length > 0 ? "#b3ffffff" : Appearance.colors.colSubtext
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+            }
+        }
+
+        Loader {
+            active: root.isVertical
+            anchors.fill: parent
+            z: 50 // On top of mediaMouseArea
+            sourceComponent: Item {
+                anchors.fill: parent
+
+                RippleButton {
+                    anchors.centerIn: parent
+                    implicitWidth: root.buttonSize * 0.65
+                    implicitHeight: root.buttonSize * 0.65
+                    buttonRadius: root.isPlaying ? Appearance.rounding.small : implicitWidth / 2
+                    colBackground: Appearance.colors.colPrimary
+                    colRipple: Appearance.colors.colPrimaryActive
+                    pointingHandCursor: true
+                    contentItem: MaterialSymbol {
+                        text: root.isPlaying ? "pause" : "play_arrow"
+                        color: Appearance.colors.colOnPrimary
+                        fill: 1
+                        iconSize: parent.height * 0.55
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                    onClicked: MprisController.togglePlaying()
+
+                    Behavior on buttonRadius { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                }
+            }
+        }
     }
 
+    // ── Drag overlay (reorder support + click forwarding) ─────────────────
     MouseArea {
-        id: mediaMouseArea
+        id: dragOverlay
         anchors.fill: parent
-        hoverEnabled: true
+        z: 10
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton | Qt.BackButton | Qt.ForwardButton
+        preventStealing: true
+        cursorShape: Qt.PointingHandCursor
+        hoverEnabled: true
+        property real pressCoord: 0
+        property bool dragActive: false
 
         onEntered: root.mediaHovered = true
         onExited: root.mediaHovered = false
 
-        onClicked: mouse => {
-            if (mouse.button === Qt.MiddleButton || mouse.button === Qt.LeftButton) {
-                root.currentPlayer?.togglePlaying();
-            } else if (mouse.button === Qt.RightButton) {
-                root.currentPlayer?.next();
-            } else if (mouse.button === Qt.BackButton) {
-                root.currentPlayer?.previous();
-            } else if (mouse.button === Qt.ForwardButton) {
-                root.currentPlayer?.next();
+        onPressed: (event) => {
+            if (event.button === Qt.LeftButton) {
+                pressCoord = root.isVertical ? event.y : event.x
             }
         }
-    }
-
-    component ArtworkItem: Item {
-        width: root.artSize
-        height: root.artSize
-
-        Rectangle {
-            id: artRect
-            anchors.centerIn: parent
-            width: root.artInner
-            height: root.artInner
-            radius: Appearance.rounding.small
-            color: Appearance.colors.colPrimaryContainer
-
-            layer.enabled: true
-            layer.effect: OpacityMask {
-                maskSource: Rectangle {
-                    width: artRect.width
-                    height: artRect.height
-                    radius: Appearance.rounding.small
+        onPositionChanged: (event) => {
+            if (!pressed) return
+            var cur = root.isVertical ? event.y : event.x
+            var dist = Math.abs(cur - pressCoord)
+            if (!dragActive && dist > 5 && root.delegateIndex >= 0) {
+                dragActive = true
+                if (root.dockContent) {
+                    root.dockContent.startItemDrag(root.delegateIndex, dragOverlay, event.x, event.y)
                 }
             }
-
-            Image {
-                id: artImg
-                anchors.fill: parent
-                source: root.finalArtUrl
-                fillMode: Image.PreserveAspectCrop
-                cache: true
-                antialiasing: true
-                asynchronous: true
-                visible: status === Image.Ready
+            if (dragActive) {
+                if (root.dockContent) root.dockContent.moveItemDrag(dragOverlay, event.x, event.y)
             }
         }
-
-        MaterialSymbol {
-            anchors.centerIn: artRect
-            visible: artImg.status !== Image.Ready
-            text: "music_note"
-            iconSize: root.artInner * 0.48
-            color: Appearance.colors.colPrimary
-        }
-    }
-
-    Loader {
-        active: !root.isVertical
-        anchors.fill: parent
-        sourceComponent: Item {
-            anchors.fill: parent
-
-            ArtworkItem {
-                id: artH
-                anchors.left: parent.left
-                anchors.leftMargin: root.dotMargin + 6
-                anchors.verticalCenter: parent.verticalCenter
+        onReleased: (event) => {
+            if (dragActive) {
+                dragActive = false
+                if (root.dockContent) root.dockContent.endItemDrag()
+                return
             }
-
-            Rectangle {
-                id: playPauseBtn
-                anchors.right: parent.right
-                anchors.rightMargin: root.dotMargin + 6
-                anchors.verticalCenter: parent.verticalCenter
-                width: root.buttonSize * 0.65
-                height: root.buttonSize * 0.65
-                radius: root.isPlaying ? Appearance.rounding.small : width / 2
-                color: Appearance.colors.colPrimary
-                Behavior on radius { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-
-                HoverHandler {
-                    cursorShape: Qt.PointingHandCursor
-                }
-
-                MaterialSymbol {
-                    anchors.centerIn: parent
-                    text: root.isPlaying ? "pause" : "play_arrow"
-                    color: Appearance.m3colors.m3onPrimary
-                    fill: root.isPlaying ? 1.0 : 0.0
-                    iconSize: parent.height * 0.55
-                }
-            }
-
-            ColumnLayout {
-                anchors.left: artH.right
-                anchors.right: playPauseBtn.left
-                anchors.leftMargin: root.dotMargin * 0.6
-                anchors.rightMargin: root.dotMargin * 0.6
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 2
-
-                Item {
-                    Layout.fillWidth: true
-                    implicitHeight: titleH.implicitHeight
-                    clip: true
-                    MarqueeText {
-                        id: titleH
-                        width: parent.width
-                        text: root.finalTitle
-                        fontSize: root.textSizeL
-                        fontWeight: Font.DemiBold
-                        textColor: Appearance.colors.colOnLayer0
-                        running: root.mediaHovered && text.length > root.marqueeRunningThreshold
-                    }
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                    implicitHeight: artistH.implicitHeight
-                    clip: true
-                    StyledText {
-                        id: artistH
-                        width: parent.width
-                        text: root.finalArtist
-                        font.pixelSize: root.textSizeS
-                        font.weight: Font.Normal
-                        color: Appearance.colors.colSubtext
-                    }
-                }
+            // Forward click to media actions
+            if (event.button === Qt.LeftButton || event.button === Qt.MiddleButton) {
+                MprisController.togglePlaying()
+            } else if (event.button === Qt.RightButton || event.button === Qt.ForwardButton) {
+                MprisController.next()
+            } else if (event.button === Qt.BackButton) {
+                MprisController.previous()
             }
         }
-    }
-
-    Loader {
-        active: root.isVertical
-        anchors.fill: parent
-        sourceComponent: Item {
-            anchors.fill: parent
-
-            ArtworkItem {
-                id: artV
-                anchors.top: parent.top
-                anchors.topMargin: root.dotMargin + 6
-                anchors.horizontalCenter: parent.horizontalCenter
+        onCanceled: {
+            if (dragActive) {
+                dragActive = false
+                if (root.dockContent) root.dockContent.cancelDrag()
             }
         }
     }

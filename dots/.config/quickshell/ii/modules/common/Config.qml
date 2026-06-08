@@ -682,10 +682,17 @@ Singleton {
                 property bool enablePreview: true
                 property bool hoverToReveal: true
                 property bool enableMediaWidget: true
+                property bool enableWeatherWidget: true
+                property bool showDividers: true
+                property bool showOverviewButton: true
+                property bool showPinButton: true
+                property bool showTrashButton: true
+                property bool showNotificationBadges: true
                 property string position: "auto"
                 property list<string> pinnedApps: ["org.kde.dolphin", "kitty",]
                 property list<string> ignoredAppRegexes: []
                 property list<string> pinnedFiles: []
+                property list<string> order: ["pin", "app:org.kde.dolphin", "app:kitty", "runningApps", "media", "weather", "trash", "overview"]
             }
 
             property JsonObject hyprland: JsonObject {

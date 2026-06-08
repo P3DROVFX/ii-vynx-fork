@@ -135,11 +135,10 @@ Scope {
 
             HyprlandFocusGrab {
                 id: dragFocusGrab
-                active: dockContent.dragState != "idle"
+                active: dockContent.dragging
                 windows: [dockRoot]
                 onCleared: {
-                    if (dockContent.isAppDrag) dockContent.endDrag()
-                    if (dockContent.isFileDrag) dockContent.endFileDrag()
+                    dockContent.cancelDrag()
                 }
             }
 
@@ -205,7 +204,7 @@ Scope {
 
                         // We delay the re-enablement slightly after an internal drag ends
                         // to prevent the "exited" event from firing for the internal drag.
-                        property bool blockDueToInternal: dockContent.dragActive
+                        property bool blockDueToInternal: dockContent.dragging
                         onBlockDueToInternalChanged: {
                             if (!blockDueToInternal) {
                                 reEnableTimer.restart()
