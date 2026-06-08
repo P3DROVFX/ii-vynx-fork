@@ -1049,6 +1049,7 @@ Singleton {
                     property int focus: 1500
                     property int longBreak: 900
                 }
+                property list<var> worldClocks: []
                 property bool secondPrecision: false
             }
 

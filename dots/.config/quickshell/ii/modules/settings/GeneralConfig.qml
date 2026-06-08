@@ -564,6 +564,105 @@ ContentPage {
                 ]
             }
         }
+
+        ContentSubsection {
+            id: worldClocksSubsection
+            title: Translation.tr("World Clocks")
+            tooltip: Translation.tr("Manage timezones displayed in the clock widget popup")
+            Layout.fillWidth: true
+
+            function addWorldClock() {
+                let list = [];
+                if (Config.options.time.worldClocks) {
+                    for (let i = 0; i < Config.options.time.worldClocks.length; i++) {
+                        list.push(Config.options.time.worldClocks[i]);
+                    }
+                }
+                list.push({ "name": "", "tz": "" });
+                Config.options.time.worldClocks = list;
+            }
+
+            function removeWorldClock(index) {
+                let list = [];
+                for (let i = 0; i < Config.options.time.worldClocks.length; i++) {
+                    if (i !== index) {
+                        list.push(Config.options.time.worldClocks[i]);
+                    }
+                }
+                Config.options.time.worldClocks = list;
+            }
+
+            function updateWorldClock(index, key, value) {
+                let list = [];
+                for (let i = 0; i < Config.options.time.worldClocks.length; i++) {
+                    let item = Config.options.time.worldClocks[i];
+                    if (i === index) {
+                        let newItem = { "name": item.name, "tz": item.tz };
+                        newItem[key] = value;
+                        list.push(newItem);
+                    } else {
+                        list.push(item);
+                    }
+                }
+                Config.options.time.worldClocks = list;
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Repeater {
+                    model: Config.options.time.worldClocks
+
+                    RowLayout {
+                        id: clockRow
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        required property var modelData
+                        required property int index
+
+                        MaterialTextField {
+                            Layout.fillWidth: true
+                            placeholderText: Translation.tr("City Name (e.g. New York)")
+                            text: clockRow.modelData.name
+                            onEditingFinished: {
+                                if (text !== clockRow.modelData.name) {
+                                    worldClocksSubsection.updateWorldClock(clockRow.index, "name", text);
+                                }
+                            }
+                        }
+
+                        MaterialTextField {
+                            Layout.fillWidth: true
+                            placeholderText: Translation.tr("Timezone ID (e.g. America/New_York)")
+                            text: clockRow.modelData.tz
+                            onEditingFinished: {
+                                if (text !== clockRow.modelData.tz) {
+                                    worldClocksSubsection.updateWorldClock(clockRow.index, "tz", text);
+                                }
+                            }
+                        }
+
+                        IconToolbarButton {
+                            text: "delete"
+                            onClicked: {
+                                worldClocksSubsection.removeWorldClock(clockRow.index);
+                            }
+                        }
+                    }
+                }
+
+                RippleButtonWithIcon {
+                    Layout.fillWidth: true
+                    materialIcon: "add"
+                    mainText: Translation.tr("Add World Clock")
+                    onClicked: {
+                        worldClocksSubsection.addWorldClock();
+                    }
+                }
+            }
+        }
     }
 
     ContentSection {
