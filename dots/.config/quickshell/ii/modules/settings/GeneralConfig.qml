@@ -618,6 +618,7 @@ ContentPage {
                         required property var modelData
                         required property int index
                         property bool searchFailed: false
+                        property bool isSearching: false
 
                         Process {
                             id: tzSearchProc
@@ -629,8 +630,10 @@ ContentPage {
                             onStarted: {
                                 buffer = "";
                                 clockRow.searchFailed = false;
+                                clockRow.isSearching = true;
                             }
                             onExited: {
+                                clockRow.isSearching = false;
                                 let res = buffer.trim();
                                 if (res) {
                                     worldClocksSubsection.updateWorldClock(clockRow.index, "tz", res);
@@ -649,9 +652,13 @@ ContentPage {
                             spacing: 8
 
                             MaterialTextField {
+                                id: cityField
                                 Layout.fillWidth: true
+                                Layout.preferredHeight: 40
+                                Layout.minimumWidth: 80
                                 placeholderText: Translation.tr("City Name (e.g. Tokyo)")
                                 text: clockRow.modelData.name || ""
+                                wrapMode: TextEdit.NoWrap
                                 onEditingFinished: {
                                     if (text !== (clockRow.modelData.name || "")) {
                                         worldClocksSubsection.updateWorldClock(clockRow.index, "name", text);
@@ -662,27 +669,64 @@ ContentPage {
                                 }
                             }
 
-                            MaterialTextField {
-                                Layout.fillWidth: true
-                                placeholderText: Translation.tr("Timezone ID (e.g. Asia/Tokyo)")
-                                text: clockRow.modelData.tz || ""
-                                onEditingFinished: {
-                                    if (text !== (clockRow.modelData.tz || "")) {
-                                        worldClocksSubsection.updateWorldClock(clockRow.index, "tz", text);
-                                    }
+                            // Timezone chip (visible when detected)
+                            Rectangle {
+                                visible: (clockRow.modelData.tz || "") !== "" && !clockRow.searchFailed
+                                Layout.preferredHeight: 36
+                                Layout.preferredWidth: Math.max(tzChipText.implicitWidth + 16, 60)
+                                color: Appearance.colors.colSurfaceContainerHigh
+                                radius: Appearance.rounding.full
+
+                                StyledText {
+                                    id: tzChipText
+                                    anchors.centerIn: parent
+                                    text: clockRow.modelData.tz || ""
+                                    font.pixelSize: Appearance.font.pixelSize.small
+                                    color: Appearance.colors.colOnSurfaceVariant
+                                    elide: Text.ElideRight
+                                    width: parent.width - 16
                                 }
+                            }
+
+                            MaterialLoadingIndicator {
+                                loading: true
+                                visible: clockRow.isSearching
+                                Layout.preferredHeight: 24
+                                Layout.preferredWidth: 24
                             }
 
                             IconToolbarButton {
                                 text: "search"
+                                Layout.preferredHeight: 36
+                                Layout.preferredWidth: 36
+                                enabled: (clockRow.modelData.tz || "") === "" && !clockRow.isSearching
                                 onClicked: tzSearchProc.running = true
                                 StyledToolTip { text: Translation.tr("Auto-detect Timezone from City Name") }
                             }
 
                             IconToolbarButton {
                                 text: "delete"
+                                Layout.preferredHeight: 36
+                                Layout.preferredWidth: 36
                                 onClicked: {
                                     worldClocksSubsection.removeWorldClock(clockRow.index);
+                                }
+                            }
+                        }
+
+                        // Fallback manual timezone field
+                        MaterialTextField {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 40
+                            Layout.minimumWidth: 80
+                            visible: clockRow.searchFailed
+                            placeholderText: Translation.tr("Timezone ID (e.g. Asia/Tokyo)")
+                            text: clockRow.modelData.tz || ""
+                            wrapMode: TextEdit.NoWrap
+                            onEditingFinished: {
+                                if (text !== (clockRow.modelData.tz || "")) {
+                                    worldClocksSubsection.updateWorldClock(clockRow.index, "tz", text);
+                                    clockRow.searchFailed = false;
                                 }
                             }
                         }
@@ -691,7 +735,7 @@ ContentPage {
                             Layout.leftMargin: 8
                             Layout.bottomMargin: 4
                             visible: clockRow.searchFailed
-                            text: Translation.tr("Timezone not found for '%1'. Try a different name.").arg(clockRow.modelData.name || "")
+                            text: Translation.tr("Timezone not found for '%1'. Try a different name or enter the ID manually.").arg(clockRow.modelData.name || "")
                             color: Appearance.colors.colError
                             font.pixelSize: Appearance.font.pixelSize.smaller
                         }
