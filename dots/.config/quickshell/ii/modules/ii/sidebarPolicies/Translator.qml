@@ -51,6 +51,7 @@ Item {
     // Widget variables
     property bool translationFor: false // Indicates if the translation is for an autocorrected text
     property string translatedText: ""
+    property string secondTranslatedText: ""
     property list<string> languages: []
 
     // Options
@@ -80,6 +81,9 @@ Item {
             root.inputField.forceActiveFocus();
         }
     }
+    onTargetLanguageChanged: {
+        translateProc.canTransliterate = true
+    }
 
     Timer {
         id: translateTimer
@@ -92,21 +96,51 @@ Item {
                 translateProc.running = true; // Restart the process
             } else {
                 root.translatedText = "";
+                root.secondTranslatedText = "";
             }
         }
     }
 
     Process {
         id: translateProc
-        command: ["bash", "-c", `trans -brief -no-bidi` + ` -source '${StringUtils.shellSingleQuoteEscape(root.sourceLanguage)}'` + ` -target '${StringUtils.shellSingleQuoteEscape(root.targetLanguage)}'` + ` '${StringUtils.shellSingleQuoteEscape(root.inputField.text.trim())}'`]
+        property bool canTransliterate: true
         property string buffer: ""
-        stdout: SplitParser {
-            onRead: data => {
-                translateProc.buffer += data + "\n";
-            }
+        function buildTarget() {
+            const s = StringUtils.shellSingleQuoteEscape
+            const tgt = s(root.targetLanguage)
+            // If transliteration detected, return `language+@language`; else `language`
+            return canTransliterate ? `${tgt}+@${tgt}` : tgt
         }
-        onExited: (exitCode, exitStatus) => {
-            root.translatedText = translateProc.buffer.trim();
+        command: {
+            const s = StringUtils.shellSingleQuoteEscape
+            const src = s(root.sourceLanguage)
+            const tgt = buildTarget()
+            const inp = s(root.inputField.text.trim())
+
+            return ["bash", "-c",
+                `trans -brief -no-bidi -source '${src}' -target '${tgt}' '${inp}'`
+            ]
+        }
+        stdout: SplitParser {
+            onRead: d => translateProc.buffer += d + "\n"
+        }
+        onStarted: {
+            buffer = ""
+            root.translatedText = ""
+            root.secondTranslatedText = ""
+        }
+        onExited: () => {
+            // Split output in half, first half is translation
+            const lines = buffer.trim().split(/\r?\n/).filter(Boolean)
+            if (!lines.length) return
+            const mid = lines.length >> 1
+            const tr = lines.slice(0, mid).join("\n").trim()
+            const tl = lines.slice(mid).join("\n").trim()
+            root.translatedText = tr
+            // If second half is unique, it is the transliteration
+            const hasSecond = tl.length > 0 && tl !== tr
+            translateProc.canTransliterate = hasSecond
+            root.secondTranslatedText = hasSecond ? tl : ""
         }
     }
 
@@ -323,16 +357,96 @@ Item {
                 StyledFlickable {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    Layout.minimumHeight: 0
                     clip: true
-                    contentHeight: outputText.implicitHeight
 
-                    StyledText {
-                        id: outputText
+                    contentHeight: contentColumn.implicitHeight
+
+                    ColumnLayout {
+                        id: contentColumn
                         width: parent.width
-                        wrapMode: Text.Wrap
-                        text: root.translatedText
-                        font.pixelSize: Appearance.font.pixelSize.huge // Material 3 Expressive
-                        color: colResultText
+                        spacing: 8
+
+                        // Main translated output
+                        StyledText {
+                            text: root.translatedText !== "" ? root.translatedText : Translation.tr("Translation will appear here...")
+                            visible: true
+
+                            wrapMode: Text.Wrap
+                            font.pixelSize: Appearance.font.pixelSize.huge
+                            color: root.translatedText !== "" ? colResultText : Appearance.colors.colSubtext
+                            opacity: root.translatedText !== "" ? 1.0 : 0.6
+
+                            Layout.fillWidth: true
+                        }
+
+                        // Transliteration translated output
+                        Rectangle {
+                            id: transliterationBubble
+
+                            Layout.fillWidth: true
+                            visible: root.secondTranslatedText.length > 0
+                            
+                            opacity: visible ? 1 : 0
+                            Behavior on opacity { NumberAnimation { duration: 120 } }
+
+                            radius: Appearance.rounding.large
+                            color: Qt.darker(colResultBox, 1.8)
+
+                            implicitHeight: transliterationText.implicitHeight + 20
+                            property bool hovered: false
+
+                            HoverHandler {
+                                onHoveredChanged: transliterationBubble.hovered = hovered
+                            }
+
+                            StyledText {
+                                id: transliterationText
+
+                                text: root.secondTranslatedText
+                                wrapMode: Text.Wrap
+                                color: colResultText
+
+                                anchors {
+                                    top: parent.top
+                                    left: parent.left
+                                    right: parent.right
+                                    margins: 10
+                                    bottomMargin: 10
+                                }
+                            }
+
+                            // Copy button
+                            RippleButton {
+                                implicitWidth: 28
+                                implicitHeight: 28
+                                buttonRadius: Appearance.rounding.full
+
+                                anchors {
+                                    right: parent.right
+                                    bottom: parent.bottom
+                                    margins: 6
+                                }
+
+                                opacity: transliterationBubble.hovered ? 1.0 : 0.0
+                                visible: opacity > 0.01
+                                colBackground: pressed ? colResultActionBtnActive : (hovered ? colResultActionBtnHover : colResultActionBtn)
+                                Behavior on opacity { NumberAnimation { duration: 150 } }
+
+                                contentItem: Item {
+                                    anchors.fill: parent
+
+                                    MaterialSymbol {
+                                        anchors.centerIn: parent
+                                        text: "content_copy"
+                                        color: colResultActionIcon
+                                        font.pixelSize: 14
+                                    }
+                                }
+
+                                onClicked: Quickshell.clipboardText = root.secondTranslatedText
+                            }
+                        }
                     }
                 }
 
