@@ -369,12 +369,13 @@ Item {
 
                         // Main translated output
                         StyledText {
-                            text: root.translatedText
-                            visible: text.length > 0
+                            text: root.translatedText !== "" ? root.translatedText : Translation.tr("Translation will appear here...")
+                            visible: true
 
                             wrapMode: Text.Wrap
                             font.pixelSize: Appearance.font.pixelSize.huge
-                            color: colResultText
+                            color: root.translatedText !== "" ? colResultText : Appearance.colors.colSubtext
+                            opacity: root.translatedText !== "" ? 1.0 : 0.6
 
                             Layout.fillWidth: true
                         }
