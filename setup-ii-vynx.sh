@@ -524,6 +524,12 @@ fi
 # ── Backup + Copy (preserving protected files) ───────────────────────────────
 echo ""
 echo -e "${NC}• Switching quickshell source...${NC}"
+
+# Kill quickshell to prevent it from overwriting config.json when files change under it
+echo -e "${NC}• Stopping Quickshell to safely update files...${NC}"
+pkill -x qs || true
+sleep 0.5
+
 mkdir -p "$(dirname "$TARGET_DIR")"
 
 # Step 1: Save protected files from current TARGET_DIR
@@ -580,23 +586,23 @@ fi
 
 
 # ── Restart ──────────────────────────────────────────────────────────────────
+echo ""
+echo -e "${NC}• Starting Quickshell...${NC}"
+pkill -x qs || true
+sleep 0.5
+nohup qs --path "$HOME/.config/quickshell/ii" >/dev/null 2>&1 &
+
 if [ "$UPDATE_ONLY" = true ]; then
     echo ""
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}    Update completed successfully!   ${NC}"
-    echo -e "${YELLOW} Reload the shell (Super+Shift+R) to apply. ${NC}"
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
     exit 0
 fi
 
-echo ""
-echo -e "${NC}• Restarting Quickshell...${NC}"
-pkill -x qs
-sleep 0.5
 hyprctl reload
 sleep 0.5
-nohup qs --path "$HOME/.config/quickshell/ii" >/dev/null 2>&1 &
 
 echo ""
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
