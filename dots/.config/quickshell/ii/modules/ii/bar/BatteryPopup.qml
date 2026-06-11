@@ -314,9 +314,14 @@ StyledPopup {
                         }
 
                         StyledText {
-                            text: Battery.health > 0
-                                  ? `~${Math.round((100 - Battery.health) * 10)}`
-                                  : "--"
+                            text: {
+                                if (Battery.cycles >= 0) {
+                                    return Battery.cycles.toString();
+                                }
+                                return Battery.health > 0
+                                      ? `~${Math.round((100 - Battery.health) * 10)}`
+                                      : "--";
+                            }
                             font.pixelSize: Appearance.font.pixelSize.normal
                             font.weight: Font.Bold
                             color: Appearance.colors.colOnSurface

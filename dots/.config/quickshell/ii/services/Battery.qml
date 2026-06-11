@@ -49,6 +49,43 @@ Singleton {
         return 0;
     })()
 
+    property string batteryNativePath: {
+        const devList = UPower.devices.values;
+        for (let i = 0; i < devList.length; ++i) {
+            const dev = devList[i];
+            if (dev.isLaptopBattery) {
+                return dev.nativePath;
+            }
+        }
+        return "";
+    }
+
+    property int cycles: -1
+
+    FileView {
+        id: cycleCountFile
+        path: root.batteryNativePath ? `/sys/class/power_supply/${root.batteryNativePath}/cycle_count` : ""
+        onLoaded: {
+            const content = text().trim();
+            const val = parseInt(content, 10);
+            if (!isNaN(val)) {
+                root.cycles = val;
+            } else {
+                root.cycles = -1;
+            }
+        }
+        onLoadFailed: {
+            root.cycles = -1;
+        }
+    }
+
+    onBatteryNativePathChanged: {
+        cycleCountFile.reload();
+    }
+
+    onChargeStateChanged: {
+        cycleCountFile.reload();
+    }
 
     onIsLowAndNotChargingChanged: {
         if (!root.available || !isLowAndNotCharging) return;
