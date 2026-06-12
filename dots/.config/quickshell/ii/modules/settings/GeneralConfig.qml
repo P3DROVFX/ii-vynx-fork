@@ -206,6 +206,39 @@ ContentPage {
                     }
                 }
             }
+
+            ContentSubsection {
+                title: Translation.tr("Show Percentage")
+                enabled: Config.options.battery.style !== "android16" && Config.options.battery.style !== "oneui"
+                StyledComboBox {
+                    buttonIcon: "percent"
+                    textRole: "displayName"
+                    model: [
+                        {
+                            displayName: Translation.tr("Off"),
+                            value: "off"
+                        },
+                        {
+                            displayName: Translation.tr("Left"),
+                            value: "left"
+                        },
+                        {
+                            displayName: Translation.tr("Right"),
+                            value: "right"
+                        }
+                    ]
+
+                    currentIndex: {
+                        const val = Config.options.battery.showPercentage || "off";
+                        const index = model.findIndex(item => item.value === val);
+                        return index !== -1 ? index : 0;
+                    }
+
+                    onActivated: index => {
+                        Config.options.battery.showPercentage = model[index].value;
+                    }
+                }
+            }
         }
 
         ConfigRow {

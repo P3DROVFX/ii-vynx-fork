@@ -626,6 +626,7 @@ Singleton {
 
             property JsonObject battery: JsonObject {
                 property string style: "android16"
+                property string showPercentage: "off"
                 property int low: 20
                 property int critical: 5
                 property int full: 101
