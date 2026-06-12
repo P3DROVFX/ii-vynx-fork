@@ -28,7 +28,7 @@ MouseArea {
     implicitWidth: {
         if (Config.options.battery.style === "android16") return android16Battery.width + 12;
         if (Config.options.battery.style === "oneui") return oneuiBattery.implicitWidth + 12;
-        return batteryContainer.width + 12;
+        return batteryContainerOuter.implicitWidth + 12;
     }
     implicitHeight: Appearance.sizes.baseBarHeight
 
@@ -164,15 +164,30 @@ MouseArea {
         }
     }
 
-    Item {
-        id: batteryContainer
-        visible: Config.options.battery.style !== "android16" && Config.options.battery.style !== "oneui"
+    Row {
+        id: batteryContainerOuter
+        visible: Config.options.battery.style === "windows11"
         anchors.centerIn: parent
-        height: 14
-        width: height * (28 / 13)
+        spacing: 7
 
-        Item {
-            id: fillClipping
+            StyledText {
+                visible: (Config.options.battery.showPercentage === "left")
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.verticalCenterOffset: (Config.options.battery.showPercentage === "left" || Config.options.battery.showPercentage === "right") ? 0.5 : 0
+                text: Math.round(root.percentage * 100) + "%"
+                color: root.textColor
+                font.pixelSize: Appearance.font.pixelSize.small
+                font.weight: Font.Bold
+            }
+
+            Item {
+                id: batteryContainer
+                anchors.verticalCenter: parent.verticalCenter
+                height: 14
+                width: height * (28 / 13)
+
+                Item {
+                    id: fillClipping
             clip: true
             anchors.top: parent.top
             anchors.bottom: parent.bottom
@@ -251,7 +266,17 @@ MouseArea {
             color: root.textColor
             z: 3
         }
-    }
+            }
+
+            StyledText {
+                visible: (Config.options.battery.showPercentage === "right")
+                anchors.verticalCenter: parent.verticalCenter
+                text: Math.round(root.percentage * 100) + "%"
+                color: root.textColor
+                font.pixelSize: Appearance.font.pixelSize.small
+                font.weight: Font.Bold
+            }
+        }
 
     BatteryPopup {
         id: batteryPopup

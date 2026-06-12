@@ -206,6 +206,39 @@ ContentPage {
                     }
                 }
             }
+
+            ContentSubsection {
+                title: Translation.tr("Show Percentage")
+                enabled: Config.options.battery.style !== "android16" && Config.options.battery.style !== "oneui"
+                StyledComboBox {
+                    buttonIcon: "percent"
+                    textRole: "displayName"
+                    model: [
+                        {
+                            displayName: Translation.tr("Off"),
+                            value: "off"
+                        },
+                        {
+                            displayName: Translation.tr("Left"),
+                            value: "left"
+                        },
+                        {
+                            displayName: Translation.tr("Right"),
+                            value: "right"
+                        }
+                    ]
+
+                    currentIndex: {
+                        const val = Config.options.battery.showPercentage || "off";
+                        const index = model.findIndex(item => item.value === val);
+                        return index !== -1 ? index : 0;
+                    }
+
+                    onActivated: index => {
+                        Config.options.battery.showPercentage = model[index].value;
+                    }
+                }
+            }
         }
 
         ConfigRow {
@@ -562,6 +595,194 @@ ContentPage {
                         value: "h:mm AP"
                     },
                 ]
+            }
+        }
+
+        ContentSubsection {
+            id: worldClocksSubsection
+            title: Translation.tr("World Clocks")
+            tooltip: Translation.tr("Manage timezones displayed in the clock widget popup")
+            Layout.fillWidth: true
+
+            function addWorldClock() {
+                let list = Config.options.time.worldClocks ? Array.from(Config.options.time.worldClocks) : [];
+                list.push({ "name": "", "tz": "" });
+                Config.options.time.worldClocks = list;
+            }
+
+            function removeWorldClock(index) {
+                let list = Config.options.time.worldClocks ? Array.from(Config.options.time.worldClocks) : [];
+                if (index >= 0 && index < list.length) {
+                    list.splice(index, 1);
+                    Config.options.time.worldClocks = list;
+                }
+            }
+
+            function updateWorldClock(index, key, value) {
+                let current = Config.options.time.worldClocks || [];
+                if (index < 0 || index >= current.length) return;
+                
+                let list = [];
+                for (let i = 0; i < current.length; i++) {
+                    let item = current[i] || { "name": "", "tz": "" };
+                    if (i === index) {
+                        let newItem = { "name": item.name || "", "tz": item.tz || "" };
+                        newItem[key] = value;
+                        list.push(newItem);
+                    } else {
+                        list.push(item);
+                    }
+                }
+                Config.options.time.worldClocks = list;
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Repeater {
+                    model: Config.options.time.worldClocks
+
+                    ColumnLayout {
+                        id: clockRow
+                        Layout.fillWidth: true
+                        spacing: 2
+
+                        required property var modelData
+                        required property int index
+                        property bool searchFailed: false
+                        property bool isSearching: false
+
+                        Process {
+                            id: tzSearchProc
+                            command: ["bash", "-c", "QUERY=$(echo '" + (clockRow.modelData.name || "").replace(/'/g, "'\\''").replace(/ /g, "_") + "' | iconv -f UTF-8 -t ASCII//TRANSLIT | sed 's/[^a-zA-Z0-9_]//g'); [ -n \"$QUERY\" ] && timedatectl list-timezones | grep -i \"$QUERY\" | head -n 1 || true"]
+                            property string buffer: ""
+                            stdout: SplitParser {
+                                onRead: data => tzSearchProc.buffer += data
+                            }
+                            onStarted: {
+                                buffer = "";
+                                clockRow.searchFailed = false;
+                                clockRow.isSearching = true;
+                            }
+                            onExited: {
+                                clockRow.isSearching = false;
+                                let res = buffer.trim();
+                                if (res) {
+                                    worldClocksSubsection.updateWorldClock(clockRow.index, "tz", res);
+                                    let prettyName = res.split("/").pop().replace(/_/g, " ");
+                                    if ((clockRow.modelData.name || "") === "" || clockRow.modelData.name.toLowerCase() === prettyName.toLowerCase()) {
+                                        worldClocksSubsection.updateWorldClock(clockRow.index, "name", prettyName);
+                                    }
+                                } else {
+                                    clockRow.searchFailed = true;
+                                }
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            MaterialTextField {
+                                id: cityField
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 40
+                                Layout.minimumWidth: 80
+                                placeholderText: Translation.tr("City Name (e.g. Tokyo)")
+                                text: clockRow.modelData.name || ""
+                                wrapMode: TextEdit.NoWrap
+                                onEditingFinished: {
+                                    if (text !== (clockRow.modelData.name || "")) {
+                                        worldClocksSubsection.updateWorldClock(clockRow.index, "name", text);
+                                        if ((clockRow.modelData.tz || "") === "") {
+                                            tzSearchProc.running = true;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Timezone chip (visible when detected)
+                            Rectangle {
+                                visible: (clockRow.modelData.tz || "") !== "" && !clockRow.searchFailed
+                                Layout.preferredHeight: 36
+                                Layout.preferredWidth: Math.max(tzChipText.implicitWidth + 16, 60)
+                                color: Appearance.colors.colSurfaceContainerHigh
+                                radius: Appearance.rounding.full
+
+                                StyledText {
+                                    id: tzChipText
+                                    anchors.centerIn: parent
+                                    text: clockRow.modelData.tz || ""
+                                    font.pixelSize: Appearance.font.pixelSize.small
+                                    color: Appearance.colors.colOnSurfaceVariant
+                                    elide: Text.ElideRight
+                                    width: parent.width - 16
+                                }
+                            }
+
+                            MaterialLoadingIndicator {
+                                loading: true
+                                visible: clockRow.isSearching
+                                Layout.preferredHeight: 24
+                                Layout.preferredWidth: 24
+                            }
+
+                            IconToolbarButton {
+                                text: "search"
+                                Layout.preferredHeight: 36
+                                Layout.preferredWidth: 36
+                                enabled: (clockRow.modelData.tz || "") === "" && !clockRow.isSearching
+                                onClicked: tzSearchProc.running = true
+                                StyledToolTip { text: Translation.tr("Auto-detect Timezone from City Name") }
+                            }
+
+                            IconToolbarButton {
+                                text: "delete"
+                                Layout.preferredHeight: 36
+                                Layout.preferredWidth: 36
+                                onClicked: {
+                                    worldClocksSubsection.removeWorldClock(clockRow.index);
+                                }
+                            }
+                        }
+
+                        // Fallback manual timezone field
+                        MaterialTextField {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 40
+                            Layout.minimumWidth: 80
+                            visible: clockRow.searchFailed
+                            placeholderText: Translation.tr("Timezone ID (e.g. Asia/Tokyo)")
+                            text: clockRow.modelData.tz || ""
+                            wrapMode: TextEdit.NoWrap
+                            onEditingFinished: {
+                                if (text !== (clockRow.modelData.tz || "")) {
+                                    worldClocksSubsection.updateWorldClock(clockRow.index, "tz", text);
+                                    clockRow.searchFailed = false;
+                                }
+                            }
+                        }
+
+                        StyledText {
+                            Layout.leftMargin: 8
+                            Layout.bottomMargin: 4
+                            visible: clockRow.searchFailed
+                            text: Translation.tr("Timezone not found for '%1'. Try a different name or enter the ID manually.").arg(clockRow.modelData.name || "")
+                            color: Appearance.colors.colError
+                            font.pixelSize: Appearance.font.pixelSize.smaller
+                        }
+                    }
+                }
+
+                RippleButtonWithIcon {
+                    Layout.fillWidth: true
+                    materialIcon: "add"
+                    mainText: Translation.tr("Add World Clock")
+                    onClicked: {
+                        worldClocksSubsection.addWorldClock();
+                    }
+                }
             }
         }
     }
