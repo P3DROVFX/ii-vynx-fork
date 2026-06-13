@@ -130,6 +130,7 @@ Item { // Bar content region
         anchors.left: Config.options.bar.bottom ? undefined : barBackground.left
         anchors.right: Config.options.bar.bottom ? barBackground.right : undefined
         implicitSize: barBackground.baseRadius
+        extendVertical: true
         color: barBackground.color
         corner: Config.options.bar.bottom ? RoundCorner.CornerEnum.BottomRight : RoundCorner.CornerEnum.BottomLeft
         visible: root.isDynamicIsland && root.showBarBackground
@@ -140,6 +141,7 @@ Item { // Bar content region
         anchors.left: Config.options.bar.bottom ? undefined : barBackground.left
         anchors.right: Config.options.bar.bottom ? barBackground.right : undefined
         implicitSize: barBackground.baseRadius
+        extendVertical: true
         color: barBackground.color
         corner: Config.options.bar.bottom ? RoundCorner.CornerEnum.TopRight : RoundCorner.CornerEnum.TopLeft
         visible: root.isDynamicIsland && root.showBarBackground
