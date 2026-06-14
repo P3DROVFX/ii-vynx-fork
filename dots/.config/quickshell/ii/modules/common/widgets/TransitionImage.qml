@@ -23,47 +23,83 @@ Item {
     property bool smooth: true
     property bool mipmap: true
 
+    property bool transitionPending: false
+
     onImageSourceChanged: fadeTo(imageSource)
     Component.onCompleted: imgA.source = imageSource
 
     function fadeTo(newSrc) {
-        var back = imgAIsBack ? imgA : imgB;
+        var back  = imgAIsBack ? imgA : imgB;
         var front = imgAIsBack ? imgB : imgA;
 
-        if (newSrc === back.source)
+        if (newSrc === back.source.toString())
             return;
 
-        // No previous wallpaper loaded — load directly onto the back image
-        // instead of crossfading, which would swap an empty image on top.
         if (back.source === "" || back.status === Image.Null) {
             back.source = newSrc;
             return;
         }
 
-        front.source = newSrc;
-        front.z = 1;
-        back.z = 0;
+        if (imgAIsBack ? fadeAnimB.running : fadeAnimA.running) {
+            if (imgAIsBack) { fadeAnimB.stop(); } else { fadeAnimA.stop(); }
+            front.opacity = 0;
+        }
+
+        transitionPending = true;
+        front.source  = newSrc;
+        front.z       = 1;
+        back.z        = 0;
+        front.opacity = 0;
+    }
+
+    function _tryStartFade() {
+        if (!transitionPending) return;
+        var front = imgAIsBack ? imgB : imgA;
+        if (front.status !== Image.Ready) return;
+
+        transitionPending = false;
 
         if (root.animated) {
-            front.opacity = 0;
-            fadeAnim.target = front;
-            fadeAnim.restart();
+            var anim = imgAIsBack ? fadeAnimB : fadeAnimA;
+            anim.restart();
         } else {
             front.opacity = 1;
-            root.imgAIsBack = !root.imgAIsBack;
+            imgAIsBack    = !imgAIsBack;
+            _releaseOldBack();
         }
     }
 
+    function _releaseOldBack() {
+        var oldBack     = imgAIsBack ? imgB : imgA;
+        oldBack.source  = "";
+        oldBack.opacity = 0;
+    }
+
     NumberAnimation {
-        id: fadeAnim
+        id: fadeAnimB
+        target: imgB
         property: "opacity"
         from: 0
         to: 1
         duration: root.animationDuration
         easing.type: Easing.InOutQuad
-
         onFinished: {
-            root.imgAIsBack = !root.imgAIsBack;
+            root.imgAIsBack = false;
+            root._releaseOldBack();
+        }
+    }
+
+    NumberAnimation {
+        id: fadeAnimA
+        target: imgA
+        property: "opacity"
+        from: 0
+        to: 1
+        duration: root.animationDuration
+        easing.type: Easing.InOutQuad
+        onFinished: {
+            root.imgAIsBack = true;
+            root._releaseOldBack();
         }
     }
 
@@ -77,6 +113,8 @@ Item {
         asynchronous: root.asynchronous
         smooth: root.smooth
         mipmap: root.mipmap
+
+        onStatusChanged: root._tryStartFade()
     }
 
     Image {
@@ -90,5 +128,7 @@ Item {
         asynchronous: root.asynchronous
         smooth: root.smooth
         mipmap: root.mipmap
+
+        onStatusChanged: root._tryStartFade()
     }
 }
