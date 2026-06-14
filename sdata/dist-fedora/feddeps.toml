@@ -86,6 +86,7 @@ packages = [
   "hyprland",
   "hyprland-guiutils",
   "hyprsunset",
+  "golang",
   "wl-clipboard"
 ]
 install_opts = ["--setopt=install_weak_deps=False"]

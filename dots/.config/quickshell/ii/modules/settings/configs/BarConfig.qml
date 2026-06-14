@@ -1,0 +1,534 @@
+import QtQuick
+import QtQuick.Layouts
+import qs.services
+import qs.modules.common
+import qs.modules.common.widgets
+
+// Root Item wraps the scrollable page + the slide-in sub-page overlay.
+// The `contentY` alias lets settings.qml search-scroll still work.
+Item {
+    id: barConfigRoot
+
+    property alias contentY: page.contentY
+
+    // ── Active sub-page URL ("" = none) ───────────────────────────────────
+    property url activeSubPage: ""
+
+    // ── Main content page ─────────────────────────────────────────────────
+    ContentPage {
+        id: page
+        anchors.fill: parent
+        forceWidth: false
+        opacity: subPageOverlay.width > 0 ? (subPageOverlay.x / subPageOverlay.width) : 1
+        visible: opacity > 0
+
+        function openWidgetPage(componentId) {
+            const compInfo = BarComponentRegistry.getComponent(componentId);
+            if (compInfo) {
+                if (typeof compInfo.sidebarPage !== "undefined") {
+                    var p = barConfigRoot;
+                    while(p && !p.hasOwnProperty("currentPage")) {
+                        p = p.parent;
+                    }
+                    if (p) {
+                        p.currentPage = compInfo.sidebarPage;
+                        if (componentId === "dashboard_panel_button") {
+                            let t = Qt.createQmlObject('import QtQuick; Timer { interval: 150; repeat: false }', barConfigRoot);
+                            t.triggered.connect(() => {
+                                SearchRegistry.currentSearch = Translation.tr("Dashboard Panel Button");
+                                t.destroy();
+                            });
+                            t.start();
+                        }
+                    }
+                } else if (compInfo.configPage) {
+                    barConfigRoot.activeSubPage = Qt.resolvedUrl("widgets/" + compInfo.configPage);
+                }
+            }
+        }
+
+        // ── Bar Layout Order ──────────────────────────────────────────────
+        ContentSection {
+            icon: "view_stream"
+            title: Translation.tr("Bar Layout Order")
+
+            ContentSubsection {
+                title: Translation.tr("Left layout widgets")
+                icon: "align_horizontal_left"
+                tooltip: Translation.tr("Top layout in vertical mode")
+                ConfigListView {
+                    barSection: 0
+                    listModel: Config.options.bar.layouts.left
+                    onUpdated: newList => {
+                        Config.options.bar.layouts.left = newList;
+                    }
+                }
+            }
+            ContentSubsection {
+                title: Translation.tr("Center layout widgets")
+                icon: "align_horizontal_center"
+                tooltip: Translation.tr("Center the component with the button")
+                ConfigListView {
+                    barSection: 1
+                    listModel: Config.options.bar.layouts.center
+                    onUpdated: newList => {
+                        Config.options.bar.layouts.center = newList;
+                    }
+                }
+            }
+            ContentSubsection {
+                title: Translation.tr("Right layout widgets")
+                icon: "align_horizontal_right"
+                tooltip: Translation.tr("Bottom layout in vertical mode")
+                ConfigListView {
+                    barSection: 2
+                    listModel: Config.options.bar.layouts.right
+                    onUpdated: newList => {
+                        Config.options.bar.layouts.right = newList;
+                    }
+                }
+            }
+        }
+
+        // ── Geometry ──────────────────────────────────────────────────────
+        ContentSection {
+            icon: "open_in_full"
+            title: Translation.tr("Geometry")
+
+            ConfigSpinBox {
+                icon: "height"
+                text: Translation.tr("Bar height")
+                value: Config.options.bar.sizes.height
+                from: 30
+                to: 50
+                stepSize: 1
+                onValueChanged: {
+                    Config.options.bar.sizes.height = value;
+                }
+            }
+            ConfigSpinBox {
+                icon: "width"
+                text: Translation.tr("Bar width")
+                value: Config.options.bar.sizes.width
+                from: 30
+                to: 50
+                stepSize: 1
+                onValueChanged: {
+                    Config.options.bar.sizes.width = value;
+                }
+            }
+        }
+
+        // ── Positioning ───────────────────────────────────────────────────
+        ContentSection {
+            icon: "spoke"
+            title: Translation.tr("Positioning")
+
+            ContentSubsection {
+                title: Translation.tr("Bar position")
+                icon: "dock"
+
+                ConfigSelectionArray {
+                    currentValue: (Config.options.bar.bottom ? 1 : 0) | (Config.options.bar.vertical ? 2 : 0)
+                    onSelected: newValue => {
+                        Config.options.bar.bottom = (newValue & 1) !== 0;
+                        Config.options.bar.vertical = (newValue & 2) !== 0;
+                    }
+                    options: [
+                        { displayName: Translation.tr("Top"),    icon: "arrow_upward",  value: 0 },
+                        { displayName: Translation.tr("Left"),   icon: "arrow_back",    value: 2 },
+                        { displayName: Translation.tr("Bottom"), icon: "arrow_downward", value: 1 },
+                        { displayName: Translation.tr("Right"),  icon: "arrow_forward", value: 3 }
+                    ]
+                }
+            }
+
+            ConfigSwitch {
+                buttonIcon: "visibility_off"
+                text: Translation.tr("Automatically hide")
+                checked: Config.options.bar.autoHide.enable
+                onCheckedChanged: {
+                    Config.options.bar.autoHide.enable = checked;
+                }
+            }
+        }
+
+        // ── Decorative Styles ─────────────────────────────────────────────
+        ContentSection {
+            icon: "palette"
+            title: Translation.tr("Decorative Styles")
+
+            ContentSubsection {
+                title: Translation.tr("Corner style")
+                icon: "rounded_corner"
+
+                ConfigSelectionArray {
+                    currentValue: Config.options.bar.cornerStyle
+                    onSelected: newValue => {
+                        Config.options.bar.cornerStyle = newValue;
+                    }
+                    options: [
+                        { displayName: Translation.tr("Hug"),            icon: "line_curve",  value: 0 },
+                        { displayName: Translation.tr("Float"),          icon: "page_header", value: 1 },
+                        { displayName: Translation.tr("Rect"),           icon: "toolbar",     value: 2 },
+                        { displayName: Translation.tr("Dynamic Island"), icon: "water_drop",  value: 3 }
+                    ]
+                }
+            }
+
+            ContentSubsection {
+                title: Translation.tr("Group style")
+                icon: "group_work"
+                tooltip: Translation.tr("Island style makes the group background opaque when bar is transparent")
+
+                ConfigSelectionArray {
+                    currentValue: Config.options.bar.barGroupStyle
+                    onSelected: newValue => {
+                        Config.options.bar.barGroupStyle = newValue;
+                    }
+                    options: [
+                        { displayName: Translation.tr("Pills"),       icon: "location_chip", value: 0 },
+                        { displayName: Translation.tr("Island"),      icon: "shadow",        value: 1 },
+                        { displayName: Translation.tr("Transparent"), icon: "opacity",       value: 2 }
+                    ]
+                }
+            }
+
+            ContentSubsection {
+                title: Translation.tr("Bar background style")
+                icon: "format_paint"
+                tooltip: Translation.tr("Adaptive style makes the bar background transparent when there are no active windows")
+
+                ConfigSelectionArray {
+                    currentValue: Config.options.bar.barBackgroundStyle
+                    onSelected: newValue => {
+                        Config.options.bar.barBackgroundStyle = newValue;
+                    }
+                    options: [
+                        { displayName: Translation.tr("Visible"),     icon: "visibility",        value: 1 },
+                        { displayName: Translation.tr("Adaptive"),    icon: "masked_transitions", value: 2 },
+                        { displayName: Translation.tr("Transparent"), icon: "opacity",            value: 0 }
+                    ]
+                }
+            }
+
+            ConfigSwitch {
+                buttonIcon: "format_color_fill"
+                text: Translation.tr("Expressive bar solid colors")
+                checked: Config.options.bar.expressiveColors
+                onCheckedChanged: {
+                    Config.options.bar.expressiveColors = checked;
+                }
+                StyledToolTip {
+                    text: Translation.tr("Use expressive solid layer colors")
+                }
+            }
+
+            ContentSubsection {
+                title: Translation.tr("Expressive color theme")
+                icon: "palette"
+                visible: Config.options.bar.expressiveColors
+
+                ConfigSelectionArray {
+                    currentValue: Config.options.bar.expressiveColorTheme
+                    onSelected: newValue => {
+                        Config.options.bar.expressiveColorTheme = newValue;
+                    }
+                    options: [
+                        { displayName: Translation.tr("Content"),   icon: "brush", value: "content" },
+                        { displayName: Translation.tr("Vibrant"),   icon: "brush", value: "primary" },
+                        { displayName: Translation.tr("Secondary"), icon: "brush", value: "secondary" },
+                        { displayName: Translation.tr("Surface"),   icon: "brush", value: "surface" }
+                    ]
+                }
+            }
+
+            ContentSubsection {
+                title: Translation.tr("Fake screen rounding")
+                icon: "fullscreen_exit"
+                Layout.fillWidth: true
+
+                ConfigSelectionArray {
+                    currentValue: Config.options.appearance.fakeScreenRounding
+                    onSelected: newValue => {
+                        Config.options.appearance.fakeScreenRounding = newValue;
+                    }
+                    options: [
+                        {
+                            displayName: Translation.tr("No"),
+                            icon: "close",
+                            value: 0
+                        },
+                        {
+                            displayName: Translation.tr("Yes"),
+                            icon: "check",
+                            value: 1
+                        },
+                        {
+                            displayName: Translation.tr("When not fullscreen"),
+                            icon: "fullscreen_exit",
+                            value: 2
+                        },
+                        {
+                            displayName: Translation.tr("Wrapped"),
+                            icon: "capture",
+                            value: 3
+                        },
+                        {
+                            displayName: Translation.tr("Edge"),
+                            icon: "border_bottom",
+                            value: 4
+                        }
+                    ]
+                }
+            }
+
+            ConfigSpinBox {
+                visible: Config.options.appearance.fakeScreenRounding === 3
+                icon: "line_weight"
+                text: Translation.tr("Wrapped frame thickness")
+                value: Config.options.appearance.wrappedFrameThickness
+                from: 5
+                to: 25
+                stepSize: 1
+                onValueChanged: {
+                    Config.options.appearance.wrappedFrameThickness = value;
+                }
+            }
+        }
+
+        // ── Scroll Actions ────────────────────────────────────────────────
+        ContentSection {
+            icon: "mouse"
+            title: Translation.tr("Scroll Actions")
+
+            ConfigSwitch {
+                buttonIcon: "volume_up"
+                text: Translation.tr("Scroll to change volume")
+                checked: Config.options.bar.enableVolumeScroll
+                onCheckedChanged: {
+                    Config.options.bar.enableVolumeScroll = checked;
+                }
+                StyledToolTip {
+                    text: Translation.tr("Enable or disable scrolling on the bar to change volume")
+                }
+            }
+
+            ConfigSwitch {
+                buttonIcon: "brightness_5"
+                text: Translation.tr("Scroll to change brightness")
+                checked: Config.options.bar.enableBrightnessScroll
+                onCheckedChanged: {
+                    Config.options.bar.enableBrightnessScroll = checked;
+                }
+                StyledToolTip {
+                    text: Translation.tr("Enable or disable scrolling on the bar to change brightness")
+                }
+            }
+        }
+
+        // ── Top Left Brand Icon ───────────────────────────────────────────
+        ContentSection {
+            icon: "policy"
+            title: Translation.tr("Top Left Brand Icon")
+
+            ConfigSwitch {
+                buttonIcon: "text_fields"
+                text: Translation.tr("Use Material Symbol for Top Left Icon")
+                checked: Config.options.bar.useMaterialSymbolForTopLeftIcon
+                onCheckedChanged: {
+                    Config.options.bar.useMaterialSymbolForTopLeftIcon = checked;
+                }
+            }
+
+            ConfigTextField {
+                text: Translation.tr("Top Left Icon identifier")
+                icon: "image"
+                tooltip: Translation.tr("If not using Material Symbol, this selects a preset SVG (e.g. arch, fedora)")
+                placeholderText: Translation.tr("Identifier...")
+
+                Component.onCompleted: {
+                    inputText = Config.options.bar.topLeftIcon;
+                }
+
+                Connections {
+                    target: Config.options.bar
+                    function onTopLeftIconChanged() {
+                        textField.text = Config.options.bar.topLeftIcon;
+                    }
+                }
+
+                textField.onTextChanged: {
+                    var val = textField.text.trim();
+                    if (val !== "" && textField.activeFocus) {
+                        Config.options.bar.topLeftIcon = val;
+                    }
+                }
+            }
+        }
+
+        // ── Notifications ───────────────────────────────────
+        ContentSection {
+            icon: "notifications"
+            title: Translation.tr("Notifications")
+
+            ConfigSpinBox {
+                icon: "timer"
+                text: Translation.tr("Timeout duration (ms)")
+                value: Config.options.notifications.timeout
+                from: 1000
+                to: 10000
+                stepSize: 500
+                onValueChanged: {
+                    Config.options.notifications.timeout = value;
+                }
+            }
+
+            ConfigSwitch {
+                buttonIcon: "desktop_windows"
+                text: Translation.tr("Force specific monitor")
+                checked: Config.options.notifications.forceMonitor.enable
+                onCheckedChanged: {
+                    Config.options.notifications.forceMonitor.enable = checked;
+                }
+            }
+
+            ConfigTextField {
+                text: Translation.tr("Force monitor name")
+                icon: "desktop_windows"
+                visible: Config.options.notifications.forceMonitor.enable
+                placeholderText: Translation.tr("Monitor Name (e.g. eDP-1)")
+                inputText: Config.options.notifications.forceMonitor.name
+                
+                textField.onTextChanged: {
+                    if (textField.activeFocus) {
+                        Config.options.notifications.forceMonitor.name = textField.text;
+                    }
+                }
+            }
+
+            ConfigSwitch {
+                buttonIcon: "counter_2"
+                text: Translation.tr("Show unread count")
+                checked: Config.options.bar.indicators.notifications.showUnreadCount
+                onCheckedChanged: {
+                    Config.options.bar.indicators.notifications.showUnreadCount = checked;
+                }
+            }
+
+            ContentSubsection {
+                title: Translation.tr("Notification indicator style")
+                icon: "notifications"
+
+                ConfigSelectionArray {
+                    currentValue: Config.options.bar.styles.notification
+                    onSelected: newValue => { Config.options.bar.styles.notification = newValue; }
+                    options: [
+                        { displayName: Translation.tr("Default"),    icon: "style",     value: "default" },
+                        { displayName: Translation.tr("Expressive"), icon: "fluid_med", value: "expressive" }
+                    ]
+                }
+            }
+        }
+
+        // ── Tooltips & Popups ─────────────────────────────────────────────
+        ContentSection {
+            icon: "tooltip"
+            title: Translation.tr("Tooltips & Popups")
+
+
+
+            ConfigSwitch {
+                buttonIcon: "ads_click"
+                text: Translation.tr("Click to show tooltips")
+                checked: Config.options.bar.tooltips.clickToShow
+                onCheckedChanged: {
+                    Config.options.bar.tooltips.clickToShow = checked;
+                }
+                StyledToolTip {
+                    text: Translation.tr("You will not be able to use the buttons on some popups if you enable this option.")
+                }
+            }
+            ConfigSwitch {
+                buttonIcon: "compress"
+                text: Translation.tr("Compact popups")
+                checked: Config.options.bar.tooltips.compactPopups
+                onCheckedChanged: {
+                    Config.options.bar.tooltips.compactPopups = checked;
+                }
+            }
+            ConfigSwitch {
+                buttonIcon: "colorize"
+                text: Translation.tr("Enable color picker popup")
+                checked: Config.options.bar.tooltips.enableColorPickerPopup
+                onCheckedChanged: {
+                    Config.options.bar.tooltips.enableColorPickerPopup = checked;
+                }
+            }
+            ConfigSwitch {
+                buttonIcon: "bluetooth"
+                text: Translation.tr("Enable Bluetooth connection popup")
+                checked: Config.options.bar.tooltips.enableBluetoothConnectionPopup
+                onCheckedChanged: {
+                    Config.options.bar.tooltips.enableBluetoothConnectionPopup = checked;
+                }
+            }
+            ConfigSwitch {
+                buttonIcon: "keyboard"
+                text: Translation.tr("Enable keyboard layout transition popup")
+                checked: Config.options.bar.tooltips.enableKeyboardLayoutTransitionPopup
+                onCheckedChanged: {
+                    Config.options.bar.tooltips.enableKeyboardLayoutTransitionPopup = checked;
+                }
+            }
+        }
+    }
+
+    // ── Sub-page overlay (slides in from the right) ───────────────────────
+    Item {
+        id: subPageOverlay
+        width: parent.width
+        height: parent.height
+        y: 0
+        z: 10
+
+        // Open: x=0. Closed: x=width (off-screen right).
+        property bool isOpen: barConfigRoot.activeSubPage.toString() !== ""
+
+        // overlayActive stays true during close animation (until x reaches width)
+        property bool overlayActive: isOpen
+        onXChanged: {
+            if (!isOpen && x >= subPageOverlay.width - 1)
+                overlayActive = false;
+        }
+        onIsOpenChanged: {
+            if (isOpen) overlayActive = true;
+        }
+
+        x: isOpen ? 0 : subPageOverlay.width
+
+        Behavior on x {
+            NumberAnimation {
+                duration: Appearance.animation.elementMove.duration
+                easing.type: Appearance.animation.elementMove.type
+                easing.bezierCurve: Appearance.animation.elementMove.bezierCurve
+            }
+        }
+
+        // Disable input when off-screen
+        enabled: isOpen
+
+        Loader {
+            id: subPageLoader
+            anchors.fill: parent
+            source: barConfigRoot.activeSubPage
+            active: subPageOverlay.overlayActive
+
+            onLoaded: {
+                item.goBack.connect(function() {
+                    barConfigRoot.activeSubPage = "";
+                });
+            }
+        }
+    }
+}

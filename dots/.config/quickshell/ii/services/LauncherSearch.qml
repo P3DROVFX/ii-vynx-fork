@@ -326,7 +326,7 @@ Singleton {
                 return;
             fileBrowserProc.running = false;
             // List directory contents, dirs first, with trailing slash for dirs
-            fileBrowserProc.command = ["bash", "-c", `ls -1 -p "${path}" 2>/dev/null | head -50`];
+            fileBrowserProc.command = ["bash", "-c", `ls -1 -p "${path}" 2>/dev/null`];
             fileBrowserProc.running = true;
         }
         stdout: StdioCollector {
@@ -614,7 +614,7 @@ Singleton {
                 return entry.toLowerCase().includes(filter);
             });
 
-            return filtered.map(entry => {
+            return filtered.slice(0, 100).map(entry => {
                 const isDir = entry.endsWith("/");
                 const fullPath = dirPath + entry;
                 const isImage = !isDir && Images.isValidImageByName(fullPath);

@@ -87,24 +87,26 @@ AbstractQuickPanel {
         var grid = [];
         var rowsNeeded = 0;
         for (var i = 0; i < togglesList.length; i++) {
-            if (!togglesList[i]) continue;
+            if (!togglesList[i])
+                continue;
             var t = togglesList[i];
             var w = t.sizeW ?? t.size ?? 1;
             var h = t.sizeH ?? 1;
             w = Math.min(w, columns); // sanitize
-            
+
             var startX = -1, startY = -1;
             for (var y = 0; startX === -1; y++) {
                 for (var x = 0; x <= columns - w; x++) {
                     var conflict = false;
                     for (var dy = 0; dy < h; dy++) {
                         for (var dx = 0; dx < w; dx++) {
-                            if (grid[y+dy] && grid[y+dy][x+dx]) {
+                            if (grid[y + dy] && grid[y + dy][x + dx]) {
                                 conflict = true;
                                 break;
                             }
                         }
-                        if (conflict) break;
+                        if (conflict)
+                            break;
                     }
                     if (!conflict) {
                         startX = x;
@@ -114,9 +116,10 @@ AbstractQuickPanel {
                 }
             }
             for (var dY = 0; dY < h; dY++) {
-                if (!grid[startY+dY]) grid[startY+dY] = [];
+                if (!grid[startY + dY])
+                    grid[startY + dY] = [];
                 for (var dX = 0; dX < w; dX++) {
-                    grid[startY+dY][startX+dX] = true;
+                    grid[startY + dY][startX + dX] = true;
                 }
             }
             rowsNeeded = Math.max(rowsNeeded, startY + h);
@@ -151,11 +154,13 @@ AbstractQuickPanel {
     }
 
     function resolveLayoutConflicts(pageIndex, gridColumns) {
-        mutatePages(function(pages) {
-            if (pageIndex < 0 || pageIndex >= pages.length) return;
+        mutatePages(function (pages) {
+            if (pageIndex < 0 || pageIndex >= pages.length)
+                return;
             var page = pages[pageIndex];
-            if (!page || page.length === 0) return;
-            
+            if (!page || page.length === 0)
+                return;
+
             // Sort by current position to maintain order
             var sorted = [];
             for (var i = 0; i < page.length; i++) {
@@ -166,19 +171,19 @@ AbstractQuickPanel {
                     sizeH: page[i].sizeH ?? 1
                 });
             }
-            
+
             // Simple grid placement simulation
             var grid = [];
             var newOrder = [];
-            
+
             for (var j = 0; j < sorted.length; j++) {
                 var item = sorted[j];
                 var placed = false;
-                
+
                 for (var row = 0; row < 20 && !placed; row++) {
                     for (var col = 0; col < gridColumns && !placed; col++) {
                         var fits = true;
-                        
+
                         for (var h = 0; h < item.sizeH && fits; h++) {
                             for (var w = 0; w < item.sizeW && fits; w++) {
                                 var cell = (row + h) * gridColumns + (col + w);
@@ -187,7 +192,7 @@ AbstractQuickPanel {
                                 }
                             }
                         }
-                        
+
                         if (fits) {
                             for (var h2 = 0; h2 < item.sizeH; h2++) {
                                 for (var w2 = 0; w2 < item.sizeW; w2++) {
@@ -200,7 +205,7 @@ AbstractQuickPanel {
                         }
                     }
                 }
-                
+
                 if (!placed) {
                     // Fallback: place at next available single cell
                     newOrder.push({
@@ -210,7 +215,7 @@ AbstractQuickPanel {
                     });
                 }
             }
-            
+
             // Rebuild page array
             page.length = 0;
             for (var k = 0; k < newOrder.length; k++) {
@@ -308,13 +313,17 @@ AbstractQuickPanel {
 
     // Move a toggle from one page to another at the drop position
     function moveToggleToPage(buttonType, fromPage, toPage, dropAbsX, dropAbsY) {
-        if (fromPage === toPage) return;
-        if (toPage < 0 || toPage >= pages.length) return;
+        if (fromPage === toPage)
+            return;
+        if (toPage < 0 || toPage >= pages.length)
+            return;
 
-        mutatePages(function(pages) {
-            if (fromPage < 0 || fromPage >= pages.length) return;
+        mutatePages(function (pages) {
+            if (fromPage < 0 || fromPage >= pages.length)
+                return;
             var sourcePage = pages[fromPage];
-            if (!sourcePage) return;
+            if (!sourcePage)
+                return;
 
             // Find and remove the toggle from the source page
             var toggleData = null;
@@ -325,11 +334,13 @@ AbstractQuickPanel {
                     break;
                 }
             }
-            if (!toggleData) return;
+            if (!toggleData)
+                return;
 
             // Append to the target page (position at end, layout engine will sort)
             var targetPage = pages[toPage];
-            if (!targetPage) pages[toPage] = [];
+            if (!targetPage)
+                pages[toPage] = [];
             pages[toPage].push(toggleData);
         });
     }
@@ -348,7 +359,7 @@ AbstractQuickPanel {
             id: fixedSlidersColumn
             width: parent.width
             spacing: root.spacing
-            
+
             Repeater {
                 id: fixedSlidersRepeater
                 model: ScriptModel {
@@ -356,10 +367,34 @@ AbstractQuickPanel {
                         var list = [];
                         const cfg = Config.options.sidebar.quickSliders;
                         if (cfg.enable) {
-                            if (cfg.showBrightness) list.push({type: "brightnessSlider", sizeW: root.columns, sizeH: 1, size: root.columns});
-                            if (cfg.showGamma) list.push({type: "gammaSlider", sizeW: root.columns, sizeH: 1, size: root.columns});
-                            if (cfg.showVolume) list.push({type: "volumeSlider", sizeW: root.columns, sizeH: 1, size: root.columns});
-                            if (cfg.showMic) list.push({type: "micSlider", sizeW: root.columns, sizeH: 1, size: root.columns});
+                            if (cfg.showBrightness)
+                                list.push({
+                                    type: "brightnessSlider",
+                                    sizeW: root.columns,
+                                    sizeH: 1,
+                                    size: root.columns
+                                });
+                            if (cfg.showGamma)
+                                list.push({
+                                    type: "gammaSlider",
+                                    sizeW: root.columns,
+                                    sizeH: 1,
+                                    size: root.columns
+                                });
+                            if (cfg.showVolume)
+                                list.push({
+                                    type: "volumeSlider",
+                                    sizeW: root.columns,
+                                    sizeH: 1,
+                                    size: root.columns
+                                });
+                            if (cfg.showMic)
+                                list.push({
+                                    type: "micSlider",
+                                    sizeW: root.columns,
+                                    sizeH: 1,
+                                    size: root.columns
+                                });
                         }
                         return list;
                     }
@@ -375,7 +410,7 @@ AbstractQuickPanel {
                     gridColumns: root.columns
                     panel: root
                     gridRef: pageContentGrid
-                    
+
                     onOpenAudioOutputDialog: root.openAudioOutputDialog()
                     onOpenAudioInputDialog: root.openAudioInputDialog()
                     onOpenBluetoothDialog: root.openBluetoothDialog()

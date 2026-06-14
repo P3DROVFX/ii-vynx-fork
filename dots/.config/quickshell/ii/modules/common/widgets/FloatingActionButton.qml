@@ -26,8 +26,8 @@ RippleButton {
         id: contentRowLayout
         property real horizontalMargins: (root.baseSize - icon.width) / 2
         anchors {
-            verticalCenter: parent?.verticalCenter
-            left: parent?.left
+            verticalCenter: parent ? parent.verticalCenter : undefined
+            left: parent ? parent.left : undefined
             leftMargin: contentRowLayout.horizontalMargins
         }
         spacing: 0
@@ -43,7 +43,7 @@ RippleButton {
         }
         Loader {
             anchors.verticalCenter: parent.verticalCenter
-            visible: root.buttonText?.length > 0
+            visible: root.buttonText && root.buttonText.length > 0
             active: true
             sourceComponent: Revealer {
                 visible: root.expanded || implicitWidth > 0

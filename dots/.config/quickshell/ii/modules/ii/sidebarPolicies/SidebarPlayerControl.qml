@@ -265,7 +265,7 @@ Item {
                             highlightColor: root.activeColor
                             trackColor: root.activeContainerColor
                             handleColor: root.activeColor
-                            value: (root.player && StringUtils.normalizeTime(root.player.length) > 0) ? (StringUtils.normalizeTime(root.player.position) / StringUtils.normalizeTime(root.player.length)) : 0
+                            value: (root.player && root.player.length > 0) ? (root.player.position / root.player.length) : 0
                             onMoved: if (root.player) root.player.position = value * root.player.length
                         }
                     }
@@ -282,7 +282,7 @@ Item {
                             wavy: root.player ? root.player.isPlaying : false
                             highlightColor: root.activeColor
                             trackColor: root.activeContainerColor
-                            value: (root.player && StringUtils.normalizeTime(root.player.length) > 0) ? (StringUtils.normalizeTime(root.player.position) / StringUtils.normalizeTime(root.player.length)) : 0
+                            value: (root.player && root.player.length > 0) ? (root.player.position / root.player.length) : 0
                         }
                     }
                 }

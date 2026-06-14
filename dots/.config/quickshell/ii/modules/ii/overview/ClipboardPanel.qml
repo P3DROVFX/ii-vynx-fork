@@ -193,19 +193,6 @@ Item {
     }
 
     readonly property int selectedSize: {
-        if (selectedIsImage && selectedEntry) {
-            const match = selectedEntry.match(/binary data ([\d.]+)\s*([KMG]i?B|B)/i);
-            if (match) {
-                const val = parseFloat(match[1]);
-                const unit = match[2].toUpperCase();
-                if (unit === "B") return Math.round(val);
-                if (unit === "KIB" || unit === "KB") return Math.round(val * 1024);
-                if (unit === "MIB" || unit === "MB") return Math.round(val * 1048576);
-                if (unit === "GIB" || unit === "GB") return Math.round(val * 1073741824);
-                return Math.round(val);
-            }
-            return 0;
-        }
         if (!selectedDecodedContent) return 0;
         return selectedDecodedContent.length;
     }
@@ -434,6 +421,49 @@ Item {
                     highlightMoveDuration: 80
 
                     ScrollBar.vertical: StyledScrollBar {}
+
+                    // Touchpad and mouse scroll physics adjustments
+                    property real scrollTargetY: 0
+                    property real touchpadScrollFactor: Config?.options.interactions.scrolling.touchpadScrollFactor ?? 100
+                    property real mouseScrollFactor: Config?.options.interactions.scrolling.mouseScrollFactor ?? 50
+                    property real mouseScrollDeltaThreshold: Config?.options.interactions.scrolling.mouseScrollDeltaThreshold ?? 120
+
+                    maximumFlickVelocity: 3500
+
+                    MouseArea {
+                        z: 99
+                        visible: Config?.options.interactions.scrolling.fasterTouchpadScroll
+                        anchors.fill: parent
+                        acceptedButtons: Qt.NoButton
+                        onWheel: function(wheelEvent) {
+                            const delta = wheelEvent.angleDelta.y / entryListView.mouseScrollDeltaThreshold;
+                            var scrollFactor = Math.abs(wheelEvent.angleDelta.y) >= entryListView.mouseScrollDeltaThreshold ? entryListView.mouseScrollFactor : entryListView.touchpadScrollFactor;
+
+                            const maxY = Math.max(0, entryListView.contentHeight - entryListView.height);
+                            const base = scrollAnim.running ? entryListView.scrollTargetY : entryListView.contentY;
+                            var targetY = Math.max(0, Math.min(base - delta * scrollFactor, maxY));
+
+                            entryListView.scrollTargetY = targetY;
+                            entryListView.contentY = targetY;
+                            wheelEvent.accepted = true;
+                        }
+                    }
+
+                    Behavior on contentY {
+                        NumberAnimation {
+                            id: scrollAnim
+                            alwaysRunToEnd: true
+                            duration: Appearance.animation.scroll.duration
+                            easing.type: Appearance.animation.scroll.type
+                            easing.bezierCurve: Appearance.animation.scroll.bezierCurve
+                        }
+                    }
+
+                    onContentYChanged: {
+                        if (!scrollAnim.running) {
+                            entryListView.scrollTargetY = entryListView.contentY;
+                        }
+                    }
 
                     delegate: RippleButton {
                         id: entryDelegate

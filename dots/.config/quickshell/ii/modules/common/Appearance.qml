@@ -260,9 +260,16 @@ Singleton {
     property bool borderless: Config.options.appearance.borderless ?? false
     onBorderlessChanged: {
         if (Config.ready) {
-            Quickshell.execDetached(["hyprctl", "eval", "hl.config({ general = { border_size = " + (borderless ? "0" : "2") + " } })"]);
+            Quickshell.execDetached(["hyprctl", "eval", "hl.config({ general = { border_size = " + (borderless ? "0" : borderWidth) + " } })"]);
         }
     } 
+
+    property int borderWidth: Config.options.appearance.borderWidth ?? 2
+    onBorderWidthChanged: {
+        if (Config.ready && !borderless) {
+            Quickshell.execDetached(["hyprctl", "eval", "hl.config({ general = { border_size = " + borderWidth + " } })"]);
+        }
+    }
     property int blurSize: Config.options.appearance.blurSize ?? 8
     onBlurSizeChanged: {
         if (Config.ready) {
@@ -294,7 +301,7 @@ Singleton {
             Quickshell.execDetached(["hyprctl", "eval", "hl.layer_rule({ match = { namespace = 'quickshell:workspaceBlurOverlay' }, ignore_alpha = 0.0 })"]);
             Quickshell.execDetached(["hyprctl", "eval", "hl.layer_rule({ match = { namespace = 'quickshell:session' }, ignore_alpha = 0.0 })"]);
             Quickshell.execDetached(["hyprctl", "eval", "hl.layer_rule({ match = { namespace = 'quickshell:wTaskView' }, ignore_alpha = 0.0 })"]);
-            Quickshell.execDetached(["hyprctl", "eval", "hl.config({ general = { border_size = " + (root.borderless ? "0" : "2") + " } })"]);
+            Quickshell.execDetached(["hyprctl", "eval", "hl.config({ general = { border_size = " + (root.borderless ? "0" : root.borderWidth) + " } })"]);
             
             let colorStr = activeBorderColor.toString();
             let rgb = "";
@@ -313,10 +320,10 @@ Singleton {
             }
             
             if (Config.options.appearance.gapsIn !== undefined) {
-                Quickshell.execDetached(["hyprctl", "eval", "hl.config({ general = { gaps_in = " + Config.options.appearance.gapsIn + " } })"]);
+                Quickshell.execDetached(["hyprctl", "eval", "hl.config({ general = { gaps_in = '" + Config.options.appearance.gapsIn + "' } })"]);
             }
             if (Config.options.appearance.gapsOut !== undefined) {
-                Quickshell.execDetached(["hyprctl", "eval", "hl.config({ general = { gaps_out = " + Config.options.appearance.gapsOut + " } })"]);
+                Quickshell.execDetached(["hyprctl", "eval", "hl.config({ general = { gaps_out = '" + Config.options.appearance.gapsOut + "' } })"]);
             }
         }
     }
@@ -324,14 +331,14 @@ Singleton {
     property int gapsIn: Config.options.appearance.gapsIn ?? 4
     onGapsInChanged: {
         if (Config.ready) {
-            Quickshell.execDetached(["hyprctl", "eval", "hl.config({ general = { gaps_in = " + gapsIn + " } })"]);
+            Quickshell.execDetached(["hyprctl", "eval", "hl.config({ general = { gaps_in = '" + gapsIn + "' } })"]);
         }
     }
 
     property int gapsOut: Config.options.appearance.gapsOut ?? 5
     onGapsOutChanged: {
         if (Config.ready) {
-            Quickshell.execDetached(["hyprctl", "eval", "hl.config({ general = { gaps_out = " + gapsOut + " } })"]);
+            Quickshell.execDetached(["hyprctl", "eval", "hl.config({ general = { gaps_out = '" + gapsOut + "' } })"]);
         }
     }
 
@@ -349,13 +356,25 @@ Singleton {
         property QtObject variableAxes: QtObject {
             property var main: ({
                     "wght": 450,
-                    "wdth": 100
+                    "wdth": 100,
+                    "ROND": Config.options.appearance.fonts.roundnessFull ? 100 : 0
                 })
             property var numbers: ({
-                    "wght": 450
+                    "wght": 450,
+                    "ROND": Config.options.appearance.fonts.roundnessFull ? 100 : 0
                 })
             property var title: ({ // Slightly bold weight for title
-                    "wght": 550 // Weight (Lowered to compensate for increased grade)
+                    "wght": 550, // Weight (Lowered to compensate for increased grade)
+                    "ROND": Config.options.appearance.fonts.roundnessFull ? 100 : 0
+                })
+            property var rounded: ({
+                    "wght": 450,
+                    "wdth": 100,
+                    "ROND": 100
+                })
+            property var titleRounded: ({
+                    "wght": 550,
+                    "ROND": 100
                 })
         }
         property QtObject pixelSize: QtObject {

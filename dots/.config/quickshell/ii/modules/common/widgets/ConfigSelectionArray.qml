@@ -8,6 +8,24 @@ import qs.modules.common.functions
 Flow {
     id: root
     Layout.fillWidth: true
+    Layout.leftMargin: 4
+    Layout.rightMargin: 4
+
+    property real calculatedWidth: 0
+
+    function updateWidth() {
+        if (!repeater) return;
+        let w = 0;
+        for (let i = 0; i < repeater.count; ++i) {
+            let child = repeater.itemAt(i);
+            if (child && child.visible) {
+                w += child.implicitWidth + root.spacing;
+            }
+        }
+        root.calculatedWidth = Math.max(0, w - root.spacing);
+    }
+
+    Layout.preferredWidth: calculatedWidth
 
     property color colBackground: Appearance.colors.colSecondaryContainer
     property color colBackgroundHover: Appearance.colors.colSecondaryContainerHover
@@ -37,6 +55,7 @@ Flow {
     signal selected(var newValue)
 
     Repeater {
+        id: repeater
         model: root.options
         delegate: SelectionGroupButton {
             id: paletteButton
@@ -46,6 +65,10 @@ Flow {
             readonly property bool isOptionEnabled: modelData.enabled !== undefined ? modelData.enabled : true
             opacity: isOptionEnabled ? 1.0 : 0.5
             mouseArea.cursorShape: isOptionEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+            
+            onImplicitWidthChanged: root.updateWidth()
+            Component.onCompleted: root.updateWidth()
+            Component.onDestruction: root.updateWidth()
             
             color: isOptionEnabled ? (toggled ? 
                 (down ? colBackgroundToggledActive : 

@@ -4,15 +4,8 @@ import QtQuick
 import QtQuick.Layouts
 import qs.services
 
-RowLayout {
+Rectangle {
     id: root
-    spacing: 10
-    Layout.leftMargin: 8
-    Layout.rightMargin: 8
-    Layout.fillWidth: true
-    Layout.topMargin: 4
-    Layout.bottomMargin: 4
-
     property string text: ""
     property string buttonIcon: ""
     property alias value: slider.value
@@ -22,41 +15,103 @@ RowLayout {
     property real to: slider.to
     property alias stepSize: slider.stepSize
     property alias snapMode: slider.snapMode
+    property alias tooltipContent: slider.tooltipContent
     property real textWidth: 180
+
+    Layout.fillWidth: true
+    implicitHeight: mainLayout.implicitHeight + 16
+
+    color: Appearance.colors.colLayer2Base
+
+    readonly property int itemIndex: {
+        var p = parent;
+        if (!p)
+            return 0;
+        var idx = 0;
+        for (var i = 0; i < p.children.length; ++i) {
+            if (p.children[i] === root)
+                return idx;
+            if (p.children[i].visible && typeof p.children[i].topLeftRadius !== "undefined")
+                idx++;
+        }
+        return 0;
+    }
+
+    readonly property int totalItems: {
+        var p = parent;
+        if (!p)
+            return 1;
+        var count = 0;
+        for (var i = 0; i < p.children.length; ++i) {
+            if (p.children[i].visible && typeof p.children[i].topLeftRadius !== "undefined")
+                count++;
+        }
+        return count;
+    }
+
+    property bool isFirst: itemIndex === 0
+    property bool isLast: itemIndex === totalItems - 1
+
+    topLeftRadius: isFirst ? Appearance.rounding.large : Appearance.rounding.verysmall
+    topRightRadius: isFirst ? Appearance.rounding.large : Appearance.rounding.verysmall
+    bottomLeftRadius: isLast ? Appearance.rounding.large : Appearance.rounding.verysmall
+    bottomRightRadius: isLast ? Appearance.rounding.large : Appearance.rounding.verysmall
 
     readonly property string currentSearch: SearchRegistry.currentSearch
     onCurrentSearchChanged: {
         if (SearchRegistry.currentSearch.toLowerCase() === root.text.toLowerCase()) {
-            highlightOverlay.startAnimation()
+            highlightOverlay.startAnimation();
         }
     }
 
+    HighlightOverlay {
+        id: highlightOverlay
+        anchors.fill: parent
+        radius: Math.max(root.topLeftRadius, root.bottomLeftRadius)
+        visible: false
+    }
+
     ColumnLayout {
+        id: mainLayout
+        anchors.fill: parent
+        anchors.margins: 8
+        spacing: 4
+
         RowLayout {
             id: row
-            spacing: 10
-            Layout.preferredWidth: root.textWidth
+            spacing: 12
+            Layout.fillWidth: true
 
-            OptionalMaterialSymbol {
+            Loader {
+                active: root.buttonIcon && root.buttonIcon.length > 0
+                visible: active
+                Layout.alignment: Qt.AlignVCenter
                 opacity: 1 - highlightOverlay.opacity
-                id: iconWidget
-                icon: root.buttonIcon
-                iconSize: Appearance.font.pixelSize.larger
+
+                sourceComponent: MaterialShapeWrappedMaterialSymbol {
+                    id: iconWidget
+                    text: root.buttonIcon
+                    shape: slider.pressed ? MaterialShape.Shape.Cookie6Sided : MaterialShape.Shape.Circle
+                    iconSize: 18
+                    padding: 6
+                    color: slider.pressed ? Appearance.colors.colPrimaryContainer : Appearance.colors.colLayer3
+                    colSymbol: slider.pressed ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer3
+
+                    Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutQuart } }
+                    Behavior on colSymbol { ColorAnimation { duration: 250; easing.type: Easing.OutQuart } }
+                }
             }
+
             StyledText {
-                opacity: 1 - highlightOverlay.opacity
                 id: labelWidget
+                opacity: 1 - highlightOverlay.opacity
                 Layout.fillWidth: true
                 text: root.text
-                color: Appearance.colors.colOnSecondaryContainer
+                color: Appearance.colors.colOnLayer2
                 elide: Text.ElideRight
             }
-            HighlightOverlay {
-                id: highlightOverlay
-                visible: false
-            }
         }
-        
+
         StyledSlider {
             id: slider
             configuration: StyledSlider.Configuration.M

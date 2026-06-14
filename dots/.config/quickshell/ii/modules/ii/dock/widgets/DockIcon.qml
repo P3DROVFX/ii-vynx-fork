@@ -104,7 +104,7 @@ Item {
             ColorOverlay {
                 anchors.fill: parent
                 source: monoDesat
-                color: ColorUtils.transparentize(Appearance.colors.colPrimary, 0.4)
+                color: ColorUtils.transparentize(Appearance.colors.colPrimary, 0.6)
             }
         }
     }

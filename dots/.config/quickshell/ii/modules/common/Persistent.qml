@@ -189,6 +189,7 @@ Singleton {
                     property string monospace: "JetBrains Mono NF"
                     property string reading: "Readex Pro"
                     property string expressive: "Space Grotesk"
+                    property bool roundnessFull: false
                 }
             }
 

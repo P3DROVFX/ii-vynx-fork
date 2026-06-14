@@ -110,6 +110,7 @@ quickshell, home_attrs, ... }:
       ### illogical-impulse-hyprland
       #hyprland
       hyprsunset #hyprsunset
+      hyprmon #hyprmon
       wl-clipboard #wl-clipboard
 
 

@@ -12,9 +12,9 @@ Rectangle {
     id: root
 
     Layout.fillWidth: true
-    
-    // short version of -> height: listModel.length * 40 + (listModel.length - 1) * 4 + listModel.length * 4 + 20 (component height + space between them + component margin + listView padding)
-    implicitHeight: listModel.length * 48 + componentSelector.height + 16 + 6
+
+    // Use view contentHeight for accurate dynamic row heights
+    implicitHeight: view.contentHeight + componentSelectRow.height + 30
 
     color: "transparent"
     radius: Appearance.rounding.large
@@ -104,7 +104,6 @@ Rectangle {
 
         spacing: 4
         cacheBuffer: 50
-        
     }
     
     RowLayout {

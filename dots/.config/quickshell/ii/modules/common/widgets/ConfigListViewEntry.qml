@@ -12,7 +12,7 @@ Item {
     readonly property var compInfo: BarComponentRegistry.getComponent(modelData.id)
 
     property bool alternateColor: visualIndex % 2 == 0
-    property color colBackground: alternateColor ? Appearance.colors.colLayer3 : Appearance.colors.colLayer2
+    property color colBackground: alternateColor ? Appearance.colors.colLayer3 : Appearance.colors.colLayer2Base
     property color colHover: alternateColor ? Appearance.colors.colLayer3Hover : Appearance.colors.colLayer2Hover
     property color colActive: alternateColor ? Appearance.colors.colLayer3Active : Appearance.colors.colLayer2Active
 
@@ -76,7 +76,7 @@ Item {
         topRightRadius: topRadius
         bottomLeftRadius: bottomRadius
         bottomRightRadius: bottomRadius
-        
+
         height: contentRow.implicitHeight + 4
 
         color: dragArea.held ? colActive : colBackground
@@ -122,7 +122,7 @@ Item {
                 iconSize: Appearance.font.pixelSize.huge
                 color: Appearance.colors.colOutline
             }
-            
+
             MaterialSymbol {
                 id: icon
                 Layout.leftMargin: 10
@@ -136,51 +136,77 @@ Item {
                 id: title
                 text: wrapper.compInfo?.title ?? modelData.id
                 color: wrapper.colTitle
-
                 Layout.leftMargin: 10
                 font {
                     family: Appearance.font.family.title
                     pixelSize: Appearance.font.pixelSize.normal
                 }
             }
-            
+
+            // Spacer to push everything to the right
             Item {
-                height: 40
                 Layout.fillWidth: true
             }
 
+            // ── Inline style picker ──
             Loader {
-                active: modelData.id in page.componentMap
+                active: wrapper.compInfo?.styleConfigKey !== undefined
+                visible: active
+                
+                Layout.preferredWidth: item ? (item.calculatedWidth !== undefined ? item.calculatedWidth : item.implicitWidth) : 0
+                Layout.minimumWidth: Layout.preferredWidth
+
+                sourceComponent: ConfigSelectionArray {
+                    readonly property string styleKey: wrapper.compInfo?.styleConfigKey ?? ""
+                    currentValue: styleKey !== "" ? (Config.options.bar.styles[styleKey] ?? "default") : "default"
+                    onSelected: newValue => {
+                        if (styleKey !== "")
+                            Config.options.bar.styles[styleKey] = newValue
+                    }
+                    options: wrapper.compInfo?.styleOptions ?? []
+                }
+            }
+
+            Loader {
+                active: wrapper.compInfo?.configPage !== undefined
+                visible: active
                 sourceComponent: EntryButton {
                     iconText: "settings"
                     tooltip: Translation.tr("Settings")
+                    onClicked: page.openWidgetPage(modelData.id)
+                }
+            }
 
+            Loader {
+                active: wrapper.compInfo?.sidebarPage !== undefined
+                visible: active
+                sourceComponent: EntryButton {
+                    iconText: "open_in_new"
+                    tooltip: Translation.tr("Open sidebar page")
                     onClicked: {
-                        page.scrollTo(modelData.id)
+                        let win = Window.window;
+                        if (win && win.currentPage !== undefined) {
+                            win.currentPage = wrapper.compInfo.sidebarPage;
+                        }
                     }
                 }
             }
-            
-            
+
             Loader {
-                active: barSection == 1 // only showing it on center layout
+                active: barSection == 1
+                visible: active
                 sourceComponent: EntryButton {
                     iconText: "adjust"
                     iconFill: modelData.centered
                     tooltip: Translation.tr("Center")
-
-                    onClicked: {
-                        root.toggleCenter(wrapper.visualIndex, wrapper.getOrderedList())
-                    }
+                    onClicked: root.toggleCenter(wrapper.visualIndex, wrapper.getOrderedList())
                 }
             }
-            
 
             EntryButton {
                 id: removeButton
                 iconText: "close"
                 tooltip: Translation.tr("Remove")
-
                 onClicked: {
                     let arr = wrapper.getOrderedList()
                     arr.splice(visualIndex, 1)
@@ -188,8 +214,6 @@ Item {
                 }
             }
         }
-
-        
     }
     
     DropArea {

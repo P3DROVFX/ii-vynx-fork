@@ -37,6 +37,8 @@ Scope {
             property list<HyprlandWorkspace> workspacesForMonitor: Hyprland.workspaces.values.filter(workspace => workspace.monitor && workspace.monitor.name == monitor.name)
             property var activeWorkspaceWithFullscreen: workspacesForMonitor.filter(workspace => ((workspace.toplevels.values.filter(window => window.wayland?.fullscreen)[0] != undefined) && workspace.active))[0]
             property bool isFullscreen: activeWorkspaceWithFullscreen != undefined
+            property var activeWorkspace: workspacesForMonitor.filter(workspace => workspace.active)[0]
+            property bool hasWindowsInActiveWorkspace: activeWorkspace != undefined && HyprlandData.windowList.some(w => w.workspace.id === activeWorkspace.id)
             // Deferred to avoid Wayland dispatch reentrancy crash in PanelWindow visibility
             property bool deferredFullscreen: false
             Timer {
@@ -525,13 +527,7 @@ Scope {
                                 }
                             }
                             sourceComponent: MultiEffect {
-                                source: ShaderEffectSource {
-                                    sourceItem: wallpaper
-                                    textureSize: Qt.size(centralWallpaperClipRect.width / 4, centralWallpaperClipRect.height / 4)
-                                    smooth: true
-                                    // Performance: disable recursive capture to avoid double texture read
-                                    recursive: false
-                                }
+                                source: wallpaper
                                 blurEnabled: true
                                 // Performance: MultiEffect uses separable blur, ~2-3x faster than GaussianBlur
                                 blurMax: 64
@@ -677,6 +673,36 @@ Scope {
                                         });
                                     }
                                 }
+                            }
+                        }
+                    }
+
+                    Loader {
+                        id: windowBlurLoader
+                        x: centralWallpaperClipRect.x
+                        y: centralWallpaperClipRect.y
+                        width: centralWallpaperClipRect.width
+                        height: centralWallpaperClipRect.height
+
+                        property bool shouldBlur: Config.options.background.blurWhenWindowsOpen && bgRoot.hasWindowsInActiveWorkspace && !GlobalStates.screenLocked
+                        active: shouldBlur || opacity > 0.01
+                        opacity: shouldBlur ? 1.0 : 0.0
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: 400
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                        sourceComponent: MultiEffect {
+                            source: centralWallpaperClipRect
+                            blurEnabled: true
+                            blurMax: 64
+                            blur: Config.options.background.blurWhenWindowsOpenRadius / 100.0
+                            
+                            Rectangle {
+                                opacity: 1.0
+                                anchors.fill: parent
+                                color: CF.ColorUtils.transparentize(Appearance.colors.colLayer0, 0.4)
                             }
                         }
                     }

@@ -100,6 +100,7 @@ Tips:
 - `hyprland`
   - Surely needed.
 - `hyprsunset`
+- `hyprmon`
   - Used in Quickshell config.
 - `wl-clipboard`
   - Surely needed.

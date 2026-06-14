@@ -4,35 +4,38 @@ import QtQuick
 import QtQuick.Controls
 
 /**
- * Material 3 styled SpinBox component.
+ * Material 3 styled SpinBox component mimicking CustomSpinBoxRow from email settings.
  */
 SpinBox {
     id: root
 
     property real baseHeight: 35
-    property real radius: Appearance.rounding.small
-    property real innerButtonRadius: Appearance.rounding.unsharpen
+    property real outerRadius: Appearance.rounding.large
+    property real innerRadius: Appearance.rounding.small
+    property real buttonSpacing: 4
     editable: true
 
     opacity: root.enabled ? 1 : 0.4
 
-    background: Rectangle {
-        color: Appearance.colors.colLayer2
-        radius: root.radius
-    }
+    leftPadding: baseHeight + buttonSpacing
+    rightPadding: baseHeight + buttonSpacing
 
-    contentItem: Item {
+    background: Item {}
+
+    contentItem: Rectangle {
         implicitHeight: root.baseHeight
-        implicitWidth: Math.max(labelText.implicitWidth, 40)
+        implicitWidth: Math.max(labelText.implicitWidth + 20, root.baseHeight)
+        radius: root.innerRadius
+        color: Appearance.colors.colSurfaceContainerHigh
 
         StyledTextInput {
             id: labelText
             anchors.centerIn: parent
-            text: root.value // displayText would make the numbers weird like 1,000 instead of 1000
-            color: Appearance.colors.colOnLayer2
+            text: root.value
+            color: Appearance.colors.colOnSurface
             font.family: Appearance.font.family.numbers
             font.variableAxes: Appearance.font.variableAxes.numbers
-            font.pixelSize: Appearance.font.pixelSize.small
+            font.pixelSize: Appearance.font.pixelSize.normal
             validator: root.validator
             onTextChanged: {
                 root.value = parseFloat(text);
@@ -41,56 +44,82 @@ SpinBox {
     }
 
     down.indicator: Rectangle {
+        id: downIndicatorRect
         anchors {
             verticalCenter: parent.verticalCenter
             left: parent.left
         }
         implicitHeight: root.baseHeight
         implicitWidth: root.baseHeight
-        topLeftRadius: root.radius
-        bottomLeftRadius: root.radius
-        topRightRadius: root.innerButtonRadius
-        bottomRightRadius: root.innerButtonRadius
+        topLeftRadius: root.outerRadius
+        bottomLeftRadius: root.outerRadius
+        topRightRadius: root.innerRadius
+        bottomRightRadius: root.innerRadius
 
-        color: root.down.pressed ? Appearance.colors.colLayer2Active : 
-            root.down.hovered ? Appearance.colors.colLayer2Hover : 
-            ColorUtils.transparentize(Appearance.colors.colLayer2)
+        color: downMouse.pressed ? Appearance.colors.colSurfaceContainerHighestActive : (downMouse.containsMouse ? Appearance.colors.colSurfaceContainerHighestHover : Appearance.colors.colSurfaceContainerHigh)
+
         Behavior on color {
-            animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+            animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(downIndicatorRect)
         }
 
-        MaterialSymbol {
+        scale: downMouse.pressed ? 0.9 : 1.0
+        Behavior on scale {
+            animation: Appearance.animation.clickBounce.numberAnimation.createObject(downIndicatorRect)
+        }
+
+        StyledText {
             anchors.centerIn: parent
-            text: "remove"
-            iconSize: 20
-            color: Appearance.colors.colOnLayer2
+            text: "-"
+            font.pixelSize: Appearance.font.pixelSize.large
+            color: Appearance.colors.colOnSurface
+        }
+
+        MouseArea {
+            id: downMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.decrease()
         }
     }
 
     up.indicator: Rectangle {
+        id: upIndicatorRect
         anchors {
             verticalCenter: parent.verticalCenter
             right: parent.right
         }
         implicitHeight: root.baseHeight
         implicitWidth: root.baseHeight
-        topRightRadius: root.radius
-        bottomRightRadius: root.radius
-        topLeftRadius: root.innerButtonRadius
-        bottomLeftRadius: root.innerButtonRadius
+        topRightRadius: root.outerRadius
+        bottomRightRadius: root.outerRadius
+        topLeftRadius: root.innerRadius
+        bottomLeftRadius: root.innerRadius
 
-        color: root.up.pressed ? Appearance.colors.colLayer2Active : 
-            root.up.hovered ? Appearance.colors.colLayer2Hover : 
-            ColorUtils.transparentize(Appearance.colors.colLayer2)
+        color: upMouse.pressed ? Appearance.colors.colSurfaceContainerHighestActive : (upMouse.containsMouse ? Appearance.colors.colSurfaceContainerHighestHover : Appearance.colors.colSurfaceContainerHigh)
+
         Behavior on color {
-            animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+            animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(upIndicatorRect)
         }
 
-        MaterialSymbol {
+        scale: upMouse.pressed ? 0.9 : 1.0
+        Behavior on scale {
+            animation: Appearance.animation.clickBounce.numberAnimation.createObject(upIndicatorRect)
+        }
+
+        StyledText {
             anchors.centerIn: parent
-            text: "add"
-            iconSize: 20
-            color: Appearance.colors.colOnLayer2
+            text: "+"
+            font.pixelSize: Appearance.font.pixelSize.large
+            color: Appearance.colors.colOnSurface
+        }
+
+        MouseArea {
+            id: upMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.increase()
         }
     }
 }

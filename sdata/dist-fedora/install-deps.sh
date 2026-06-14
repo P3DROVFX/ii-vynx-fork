@@ -113,6 +113,10 @@ done < <(echo "$deps_data" | yq '.groups | keys[]? | select(length > 0)')
 # Add back versionlock at the end
 [ -n $nolock_qs ] || v sudo dnf versionlock add quickshell-git || true
 
+# Install hyprmon since no RPM is available
+echo "Installing hyprmon via go install..."
+env GOBIN=$HOME/.local/bin go install github.com/erans/hyprmon@latest
+
 echo -e "\n========================================"
 echo "All installations are completed."
 echo "========================================"

@@ -8,5 +8,6 @@ license=(None)
 depends=(
   hyprland
   hyprsunset
+  hyprmon-bin
   wl-clipboard
 )

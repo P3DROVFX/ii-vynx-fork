@@ -260,10 +260,10 @@ Item {
 
             visible: Config.options.sidebar.dashboardHeader.profileImageType !== "none" || Config.options.sidebar.dashboardHeader.textMode !== "none"
 
-            property int rowLeftMargin: Config.options.sidebar.dashboardHeader.profileImageType === "custom" ? 6 : 14
+            property int rowLeftMargin: Config.options.sidebar.dashboardHeader.profileImageType === "user_profile" ? 6 : 14
 
             implicitWidth: uptimeRow.implicitWidth + rowLeftMargin + 14
-            implicitHeight: Math.max(32, uptimeRow.implicitHeight + (Config.options.sidebar.dashboardHeader.profileImageType === "custom" ? 4 : 12))
+            implicitHeight: Math.max(32, uptimeRow.implicitHeight + (Config.options.sidebar.dashboardHeader.profileImageType === "user_profile" ? 4 : 12))
 
             Row {
                 id: uptimeRow
@@ -296,47 +296,168 @@ Item {
                         }
                     }
 
-                    Image {
-                        id: profilePicSource
+                    Item {
                         anchors.fill: parent
-                        source: Config.options.sidebar.dashboardHeader.profileImageType === "custom" ? Config.options.sidebar.dashboardHeader.profileImagePath : ""
-                        sourceSize.width: parent.width
-                        sourceSize.height: parent.height
-                        fillMode: Image.PreserveAspectCrop
-                        visible: false
-                    }
+                        visible: Config.options.sidebar.dashboardHeader.profileImageType === "user_profile"
+                        
+                        readonly property string _style: Config.options.userProfile.imageStyle
+                        
+                        // Custom
+                        Item {
+                            anchors.fill: parent
+                            visible: parent._style === "custom"
+                            Image {
+                                id: profilePicSource
+                                anchors.fill: parent
+                                source: parent.visible ? Config.options.userProfile.imagePath : ""
+                                sourceSize.width: parent.width
+                                sourceSize.height: parent.height
+                                fillMode: Image.PreserveAspectCrop
+                                visible: false
+                            }
+                            Rectangle {
+                                id: profilePicMask
+                                anchors.fill: parent
+                                radius: width / 2
+                                visible: false
+                            }
+                            OpacityMask {
+                                anchors.fill: parent
+                                source: profilePicSource
+                                maskSource: profilePicMask
+                            }
+                        }
 
-                    Rectangle {
-                        id: profilePicMask
-                        anchors.fill: parent
-                        radius: width / 2
-                        visible: false
-                    }
+                        // Initial
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: width / 2
+                            visible: parent._style === "initial" || parent._style === "default"
 
-                    OpacityMask {
-                        anchors.fill: parent
-                        source: profilePicSource
-                        maskSource: profilePicMask
-                        visible: Config.options.sidebar.dashboardHeader.profileImageType === "custom"
+                            Image {
+                                id: initialAvatarSource
+                                anchors.fill: parent
+                                source: parent.visible ? Directories.userAvatarPathAccountsService : ""
+                                sourceSize.width:  parent.width
+                                sourceSize.height: parent.height
+                                fillMode: Image.PreserveAspectCrop
+                                visible: false
+                            }
+                            Rectangle {
+                                id: initialAvatarMask
+                                anchors.fill: parent
+                                radius: width / 2
+                                visible: false
+                            }
+                            OpacityMask {
+                                id: initialAvatarImage
+                                anchors.fill: parent
+                                source: initialAvatarSource
+                                maskSource: initialAvatarMask
+                                visible: initialAvatarSource.status === Image.Ready
+                            }
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: width / 2
+                                color: Appearance.colors.colPrimary
+                                visible: initialAvatarSource.status !== Image.Ready
+
+                                StyledText {
+                                    anchors.centerIn: parent
+                                    text: SystemInfo.username.charAt(0).toUpperCase()
+                                    color: Appearance.colors.colOnPrimary
+                                    font.pixelSize: Appearance.font.pixelSize.larger
+                                    font.weight: Font.DemiBold
+                                }
+                            }
+                        }
+
+                        // Expressive
+                        MaterialShape {
+                            anchors.fill: parent
+                            
+                            function resolveShapeInner(s) {
+                                switch(s) {
+                                    case "Cookie9Sided":  return MaterialShape.Shape.Cookie9Sided;
+                                    case "Cookie12Sided": return MaterialShape.Shape.Cookie12Sided;
+                                    case "Squircle":      return MaterialShape.Shape.Squircle;
+                                    case "Circle":        return MaterialShape.Shape.Circle;
+                                    case "Clover4Leaf":   return MaterialShape.Shape.Clover4Leaf;
+                                    case "Burst":         return MaterialShape.Shape.Burst;
+                                    case "Heart":         return MaterialShape.Shape.Heart;
+                                    case "Bun":           return MaterialShape.Shape.Bun;
+                                    default:              return MaterialShape.Shape.Cookie9Sided;
+                                }
+                            }
+                            shape: resolveShapeInner(Config.options.userProfile.avatarShape)
+                            
+                            property color resolvedColor: {
+                                switch(Config.options.userProfile.avatarColor) {
+                                    case "primary": return Appearance.colors.colPrimary;
+                                    case "secondary": return Appearance.colors.colSecondary;
+                                    case "tertiary": return Appearance.colors.colTertiary;
+                                    case "error": return Appearance.colors.colError;
+                                    default: return Appearance.colors.colPrimary;
+                                }
+                            }
+                            property color resolvedOnColor: {
+                                switch(Config.options.userProfile.avatarColor) {
+                                    case "primary": return Appearance.colors.colOnPrimary;
+                                    case "secondary": return Appearance.colors.colOnSecondary;
+                                    case "tertiary": return Appearance.colors.colOnTertiary;
+                                    case "error": return Appearance.colors.colOnError;
+                                    default: return Appearance.colors.colOnPrimary;
+                                }
+                            }
+                            
+                            color: resolvedColor
+                            visible: parent._style === "expressive"
+
+                            StyledText {
+                                anchors.centerIn: parent
+                                text: {
+                                    let n = Config.options.userProfile.customName || SystemInfo.username;
+                                    return n.charAt(0).toUpperCase();
+                                }
+                                color: parent.resolvedOnColor
+                                font.pixelSize: Appearance.font.pixelSize.larger
+                                font.family: Appearance.font.family.expressive
+                                font.weight: Font.DemiBold
+                            }
+                        }
                     }
                 }
 
-                StyledText {
+                ColumnLayout {
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pixelSize: Appearance.font.pixelSize.small
-                    color: Appearance.colors.colOnLayer0
-                    text: {
-                        const mode = Config.options.sidebar.dashboardHeader.textMode;
-                        if (mode === "username")
-                            return "Hello, " + SystemInfo.username;
-                        if (mode === "uptime")
-                            return Translation.tr("Uptime") + ": " + DateTime.uptime;
-                        if (mode === "custom")
-                            return Config.options.sidebar.dashboardHeader.customText;
-                        return "";
-                    }
-                    font.bold: true
+                    spacing: 0
                     visible: Config.options.sidebar.dashboardHeader.textMode !== "none"
+                    
+                    StyledText {
+                        font.pixelSize: Appearance.font.pixelSize.smallie
+                        color: Appearance.colors.colOnLayer0
+                        text: {
+                            const mode = Config.options.sidebar.dashboardHeader.textMode;
+                            if (mode === "username") {
+                                const greeting = Config.options.userProfile.customGreeting;
+                                return (greeting !== "" ? greeting : Translation.tr("Hello,")) + " " + (Config.options.userProfile.customName !== "" ? Config.options.userProfile.customName : SystemInfo.username);
+                            }
+                            if (mode === "uptime") return Translation.tr("Uptime") + ": " + DateTime.uptime;
+                            if (mode === "custom") return Config.options.sidebar.dashboardHeader.customText;
+                            return "";
+                        }
+                        font.bold: true
+                        Layout.fillWidth: true
+                        elide: Text.ElideRight
+                    }
+                    StyledText {
+                        font.pixelSize: Appearance.font.pixelSize.smaller
+                        color: Appearance.colors.colOnLayer1
+                        text: Config.options.userProfile.customBio
+                        visible: Config.options.sidebar.dashboardHeader.textMode === "username" && text !== ""
+                        Layout.fillWidth: true
+                        elide: Text.ElideRight
+                    }
                 }
             }
         }

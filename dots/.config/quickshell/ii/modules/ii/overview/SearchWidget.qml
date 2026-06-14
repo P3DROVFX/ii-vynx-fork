@@ -413,9 +413,49 @@ Item {
                     KeyNavigation.up: searchBar
                     highlightMoveDuration: 100
 
+                    // Touchpad and mouse scroll physics adjustments
+                    property real scrollTargetY: 0
+                    property real touchpadScrollFactor: Config?.options.interactions.scrolling.touchpadScrollFactor ?? 100
+                    property real mouseScrollFactor: Config?.options.interactions.scrolling.mouseScrollFactor ?? 50
+                    property real mouseScrollDeltaThreshold: Config?.options.interactions.scrolling.mouseScrollDeltaThreshold ?? 120
+
+                    maximumFlickVelocity: 3500
+
+                    MouseArea {
+                        z: 99
+                        visible: Config?.options.interactions.scrolling.fasterTouchpadScroll
+                        anchors.fill: parent
+                        acceptedButtons: Qt.NoButton
+                        onWheel: function(wheelEvent) {
+                            const delta = wheelEvent.angleDelta.y / appResults.mouseScrollDeltaThreshold;
+                            var scrollFactor = Math.abs(wheelEvent.angleDelta.y) >= appResults.mouseScrollDeltaThreshold ? appResults.mouseScrollFactor : appResults.touchpadScrollFactor;
+
+                            const maxY = Math.max(0, appResults.contentHeight - appResults.height);
+                            const base = scrollAnim.running ? appResults.scrollTargetY : appResults.contentY;
+                            var targetY = Math.max(0, Math.min(base - delta * scrollFactor, maxY));
+
+                            appResults.scrollTargetY = targetY;
+                            appResults.contentY = targetY;
+                            wheelEvent.accepted = true;
+                        }
+                    }
+
+                    Behavior on contentY {
+                        NumberAnimation {
+                            id: scrollAnim
+                            alwaysRunToEnd: true
+                            duration: Appearance.animation.scroll.duration
+                            easing.type: Appearance.animation.scroll.type
+                            easing.bezierCurve: Appearance.animation.scroll.bezierCurve
+                        }
+                    }
+
                     onContentYChanged: {
                         if (contentHeight > 0 && contentY + height > contentHeight - 150) {
                             root.loadMoreResults();
+                        }
+                        if (!scrollAnim.running) {
+                            appResults.scrollTargetY = appResults.contentY;
                         }
                     }
 

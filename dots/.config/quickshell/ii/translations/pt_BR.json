@@ -733,5 +733,7 @@
   "Tint app icons": "Colorir ícones de app",
   "Color picker": "Seletor de cores",
   "Night Light | Right-click to toggle Auto mode": "Luz Noturna | Botão direito para alternar modo Auto",
-  "Inactive": "Inativo"
+  "Inactive": "Inativo",
+  "Full font roundness": "Arredondamento total da fonte",
+  "Use rounded font variant (ROND: 100) for variable fonts like Google Sans Flex": "Usar variante arredondada (ROND: 100) para fontes variáveis como Google Sans Flex"
 }
