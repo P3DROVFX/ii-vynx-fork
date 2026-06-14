@@ -623,6 +623,49 @@ MouseArea {
                         bottomMargin: extraOptions.implicitHeight
                         ScrollBar.vertical: StyledScrollBar {}
 
+                        // Touchpad and mouse scroll physics adjustments
+                        property real scrollTargetY: 0
+                        property real touchpadScrollFactor: Config?.options.interactions.scrolling.touchpadScrollFactor ?? 100
+                        property real mouseScrollFactor: Config?.options.interactions.scrolling.mouseScrollFactor ?? 50
+                        property real mouseScrollDeltaThreshold: Config?.options.interactions.scrolling.mouseScrollDeltaThreshold ?? 120
+
+                        maximumFlickVelocity: 3500
+
+                        MouseArea {
+                            z: 99
+                            visible: Config?.options.interactions.scrolling.fasterTouchpadScroll
+                            anchors.fill: parent
+                            acceptedButtons: Qt.NoButton
+                            onWheel: function(wheelEvent) {
+                                const delta = wheelEvent.angleDelta.y / grid.mouseScrollDeltaThreshold;
+                                var scrollFactor = Math.abs(wheelEvent.angleDelta.y) >= grid.mouseScrollDeltaThreshold ? grid.mouseScrollFactor : grid.touchpadScrollFactor;
+
+                                const maxY = Math.max(0, grid.contentHeight - grid.height);
+                                const base = scrollAnim.running ? grid.scrollTargetY : grid.contentY;
+                                var targetY = Math.max(0, Math.min(base - delta * scrollFactor, maxY));
+
+                                grid.scrollTargetY = targetY;
+                                grid.contentY = targetY;
+                                wheelEvent.accepted = true;
+                            }
+                        }
+
+                        Behavior on contentY {
+                            NumberAnimation {
+                                id: scrollAnim
+                                alwaysRunToEnd: true
+                                duration: Appearance.animation.scroll.duration
+                                easing.type: Appearance.animation.scroll.type
+                                easing.bezierCurve: Appearance.animation.scroll.bezierCurve
+                            }
+                        }
+
+                        onContentYChanged: {
+                            if (!scrollAnim.running) {
+                                grid.scrollTargetY = grid.contentY;
+                            }
+                        }
+
                         Component.onCompleted: {
                             Qt.callLater(() => loadTimer.start())
                             wallpaperSelectorContent.updateThumbnails()
