@@ -153,6 +153,7 @@ Item { // Bar content region
         anchors.top: barBackground.top
         anchors.right: barBackground.left
         implicitSize: barBackground.baseRadius
+        extendHorizontal: true
         color: barBackground.color
         corner: RoundCorner.CornerEnum.TopRight
         visible: root.isDynamicIsland && root.showBarBackground && !Config.options.bar.bottom
@@ -168,6 +169,7 @@ Item { // Bar content region
         anchors.top: barBackground.top
         anchors.left: barBackground.right
         implicitSize: barBackground.baseRadius
+        extendHorizontal: true
         color: barBackground.color
         corner: RoundCorner.CornerEnum.TopLeft
         visible: root.isDynamicIsland && root.showBarBackground && !Config.options.bar.bottom
@@ -184,6 +186,7 @@ Item { // Bar content region
         anchors.bottom: barBackground.bottom
         anchors.right: barBackground.left
         implicitSize: barBackground.baseRadius
+        extendHorizontal: true
         color: barBackground.color
         corner: RoundCorner.CornerEnum.BottomRight
         visible: root.isDynamicIsland && root.showBarBackground && Config.options.bar.bottom
@@ -199,6 +202,7 @@ Item { // Bar content region
         anchors.bottom: barBackground.bottom
         anchors.left: barBackground.right
         implicitSize: barBackground.baseRadius
+        extendHorizontal: true
         color: barBackground.color
         corner: RoundCorner.CornerEnum.BottomLeft
         visible: root.isDynamicIsland && root.showBarBackground && Config.options.bar.bottom
